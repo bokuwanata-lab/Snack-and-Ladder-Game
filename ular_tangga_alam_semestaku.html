@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Alam Semestaku — Ular Tangga Edukasi 100 Kotak</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-display: 'Fredoka', sans-serif;
+      --font-body: 'Nunito', sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: var(--font-body);
+      background-color: #070B24;
+      color: #F8FAFC;
+    }
+    .font-display {
+      font-family: var(--font-display);
+    }
+
+    /* Board Grid & Aspect Ratio */
+    .board-wrapper {
+      aspect-ratio: 1 / 1;
+      height: calc(100vh - 24px);
+      max-width: calc(100vw - 420px);
+      max-height: calc(100vh - 24px);
+      position: relative;
+      border-radius: 22px;
+      padding: 8px;
+      background: linear-gradient(145deg, rgba(30, 41, 99, 0.9), rgba(13, 18, 56, 0.95));
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), inset 0 0 0 3px rgba(129, 140, 248, 0.35);
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      z-index: 10;
+      gap: 2px;
+      background: rgba(15, 23, 62, 0.75);
+    }
+
+    .board-tile {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3px 5px;
+      border-radius: 6px;
+      transition: transform 0.2s ease, filter 0.2s ease;
+      overflow: hidden;
+    }
+
+    .board-tile.tile-question::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.55);
+      pointer-events: none;
+    }
+
+    .tile-active-hop {
+      animation: tilePulse 0.38s ease-out;
+      z-index: 25;
+    }
+
+    @keyframes tilePulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.12); filter: brightness(1.45); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+
+    /* SVG Overlay for Ladders & Snakes */
+    .board-svg-overlay {
+      position: absolute;
+      inset: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Pawns Layer */
+    .pawns-layer {
+      position: absolute;
+      inset: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    .pawn-token {
+      position: absolute;
+      width: 4.2%;
+      height: 4.2%;
+      transform: translate(-50%, -50%);
+      transition: left 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.24s ease;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.65));
+      z-index: 32;
+    }
+
+    .pawn-token.active-turn {
+      z-index: 40;
+      animation: pawnFloat 1.4s ease-in-out infinite;
+    }
+
+    .pawn-token.hopping {
+      transform: translate(-50%, -75%) scale(1.28) !important;
+    }
+
+    @keyframes pawnFloat {
+      0%, 100% { transform: translate(-50%, -50%) scale(1.1); }
+      50% { transform: translate(-50%, -64%) scale(1.18); }
+    }
+
+    /* Dice Shake Animation */
+    .dice-shaking {
+      animation: diceShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+    }
+
+    @keyframes diceShake {
+      0% { transform: rotate(0deg) translate(0, 0) scale(1); }
+      20% { transform: rotate(-14deg) translate(-4px, -3px) scale(1.06); }
+      40% { transform: rotate(12deg) translate(4px, 2px) scale(1.06); }
+      60% { transform: rotate(-10deg) translate(-3px, 4px) scale(1.04); }
+      80% { transform: rotate(10deg) translate(3px, -2px) scale(1.04); }
+      100% { transform: rotate(0deg) translate(0, 0) scale(1); }
+    }
+
+    /* 1.5s Delay Highlight Pulse */
+    .announce-highlight {
+      animation: announcePulse 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes announcePulse {
+      from { transform: scale(1); box-shadow: 0 0 12px rgba(250, 204, 21, 0.45); }
+      to { transform: scale(1.03); box-shadow: 0 0 26px rgba(250, 204, 21, 0.9); }
+    }
+
+    /* Twinkling background stars */
+    .star-twinkle-1 { animation: twinkle 3.2s ease-in-out infinite alternate; }
+    .star-twinkle-2 { animation: twinkle 4.5s ease-in-out 1.2s infinite alternate; }
+    .star-twinkle-3 { animation: twinkle 2.7s ease-in-out 0.6s infinite alternate; }
+
+    @keyframes twinkle {
+      0% { opacity: 0.35; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1.12); }
+    }
+
+    /* Custom Scrollbar for Modals Only */
+    .modal-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .modal-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+    }
+    .modal-scroll::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.7);
+      border-radius: 8px;
+    }
+
+    /* Responsive adjustments for smaller landscape screens */
+    @media (max-width: 1180px) {
+      .board-wrapper {
+        max-width: calc(100vw - 360px);
+      }
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+  <!-- ==================================================================== -->
+  <!-- FULL-SCREEN 2D FLAT-COLOR NIGHT SKY & CELESTIAL BODIES SVG BACKGROUND -->
+  <!-- ==================================================================== -->
+  <svg class="fixed inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="nightSkyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#05071B"/>
+        <stop offset="40%" stop-color="#0E153A"/>
+        <stop offset="75%" stop-color="#1B1A4B"/>
+        <stop offset="100%" stop-color="#0F172A"/>
+      </linearGradient>
+      <radialGradient id="nebulaPink" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#EC4899" stop-opacity="0.28"/>
+        <stop offset="55%" stop-color="#8B5CF6" stop-opacity="0.12"/>
+        <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="nebulaCyan" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.26"/>
+        <stop offset="60%" stop-color="#3B82F6" stop-opacity="0.1"/>
+        <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FEF08A" stop-opacity="0.38"/>
+        <stop offset="50%" stop-color="#FDE047" stop-opacity="0.12"/>
+        <stop offset="100%" stop-color="#FDE047" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="saturnBody" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FBBF24"/>
+        <stop offset="50%" stop-color="#F59E0B"/>
+        <stop offset="100%" stop-color="#D97706"/>
+      </linearGradient>
+      <linearGradient id="saturnRing" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#FDE68A" stop-opacity="0.85"/>
+        <stop offset="50%" stop-color="#F59E0B" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#FEF3C7" stop-opacity="0.8"/>
+      </linearGradient>
+      <linearGradient id="icePlanet" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38BDF8"/>
+        <stop offset="100%" stop-color="#0284C7"/>
+      </linearGradient>
+      <linearGradient id="redPlanet" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FB7185"/>
+        <stop offset="100%" stop-color="#E11D48"/>
+      </linearGradient>
+      <linearGradient id="cometTailBg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#67E8F9" stop-opacity="0.85"/>
+        <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Base Night Sky -->
+    <rect width="1920" height="1080" fill="url(#nightSkyGrad)"/>
+
+    <!-- Soft Cosmic Nebulae (Lineless 2D Flat Clouds) -->
+    <circle cx="320" cy="240" r="420" fill="url(#nebulaPink)"/>
+    <circle cx="1560" cy="300" r="460" fill="url(#nebulaCyan)"/>
+    <circle cx="1050" cy="820" r="380" fill="url(#nebulaPink)"/>
+
+    <!-- Wavy Cosmic Dust Bands (2D Flat Shapes) -->
+    <path d="M-100,750 C350,620 720,890 1220,730 C1580,610 1820,770 2020,690 L2020,1080 L-100,1080 Z" fill="#131B4D" opacity="0.55"/>
+    <path d="M-100,880 C420,790 880,980 1380,850 C1680,770 1860,890 2020,840 L2020,1080 L-100,1080 Z" fill="#0B1136" opacity="0.75"/>
+
+    <!-- Distant Spiral Galaxy (Top Center-Right) -->
+    <g transform="translate(1150, 145) rotate(-18)">
+      <ellipse cx="0" cy="0" rx="95" ry="36" fill="#A855F7" opacity="0.22"/>
+      <ellipse cx="0" cy="0" rx="64" ry="22" fill="#EC4899" opacity="0.35"/>
+      <ellipse cx="0" cy="0" rx="28" ry="10" fill="#FEF08A" opacity="0.8"/>
+      <circle cx="-45" cy="-8" r="3" fill="#FFF"/>
+      <circle cx="52" cy="9" r="2.5" fill="#FFF"/>
+    </g>
+
+    <!-- Constellation Lines (Subtle Geometric Sky Art) -->
+    <g stroke="#6366F1" stroke-width="1.8" stroke-dasharray="5 5" opacity="0.4" fill="none">
+      <polyline points="110,130 185,95 250,140 230,210 150,195 110,130"/>
+      <polyline points="1690,680 1760,640 1830,670 1855,745"/>
+      <polyline points="980,70 1030,115 1090,95 1130,140"/>
+    </g>
+    <g fill="#E0E7FF" opacity="0.85">
+      <circle cx="110" cy="130" r="4"/><circle cx="185" cy="95" r="5"/><circle cx="250" cy="140" r="4"/><circle cx="230" cy="210" r="4.5"/><circle cx="150" cy="195" r="3.5"/>
+      <circle cx="1690" cy="680" r="4"/><circle cx="1760" cy="640" r="5"/><circle cx="1830" cy="670" r="4"/><circle cx="1855" cy="745" r="4.5"/>
+      <circle cx="980" cy="70" r="4"/><circle cx="1030" cy="115" r="4.5"/><circle cx="1090" cy="95" r="4"/><circle cx="1130" cy="140" r="3.5"/>
+    </g>
+
+    <!-- Twinkling Starfield -->
+    <g class="star-twinkle-1" fill="#FEF9C3">
+      <circle cx="80" cy="420" r="3"/>
+      <circle cx="480" cy="90" r="3.5"/>
+      <circle cx="890" cy="180" r="2.5"/>
+      <circle cx="1340" cy="95" r="4"/>
+      <circle cx="1840" cy="220" r="3"/>
+      <circle cx="1620" cy="520" r="3.5"/>
+      <circle cx="1120" cy="420" r="2.5"/>
+      <circle cx="65" cy="820" r="3.5"/>
+      <!-- 4-Point Sparkle Stars -->
+      <path d="M540,70 L544,82 L556,86 L544,90 L540,102 L536,90 L524,86 L536,82 Z" fill="#FDE047"/>
+      <path d="M1440,210 L1443,220 L1453,223 L1443,226 L1440,236 L1437,226 L1427,223 L1437,220 Z" fill="#67E8F9"/>
+    </g>
+    <g class="star-twinkle-2" fill="#E0F2FE">
+      <circle cx="290" cy="65" r="3"/>
+      <circle cx="740" cy="110" r="3.5"/>
+      <circle cx="1230" cy="290" r="3"/>
+      <circle cx="1510" cy="85" r="3"/>
+      <circle cx="1790" cy="410" r="4"/>
+      <circle cx="1410" cy="780" r="3"/>
+      <circle cx="940" cy="610" r="2.5"/>
+      <path d="M1810,110 L1814,122 L1826,126 L1814,130 L1810,142 L1806,130 L1794,126 L1806,122 Z" fill="#F472B6"/>
+      <path d="M95,580 L98,589 L107,592 L98,595 L95,604 L92,595 L83,592 L92,589 Z" fill="#FEF08A"/>
+    </g>
+    <g class="star-twinkle-3" fill="#FFF">
+      <circle cx="155" cy="310" r="2.5"/>
+      <circle cx="620" cy="240" r="3"/>
+      <circle cx="1040" cy="240" r="3.5"/>
+      <circle cx="1680" cy="180" r="2.5"/>
+      <circle cx="1290" cy="520" r="3"/>
+      <circle cx="1870" cy="880" r="3.5"/>
+    </g>
+
+    <!-- Glowing Crescent Moon (Top Left-Center) -->
+    <g transform="translate(115, 95)">
+      <circle cx="0" cy="0" r="95" fill="url(#moonGlow)"/>
+      <path d="M-15,-52 A55,55 0 1,0 42,36 A44,44 0 1,1 -15,-52 Z" fill="#FEF08A"/>
+      <circle cx="-18" cy="10" r="6" fill="#FACC15" opacity="0.45"/>
+      <circle cx="2" cy="28" r="9" fill="#FACC15" opacity="0.35"/>
+      <circle cx="-8" cy="-16" r="4.5" fill="#FACC15" opacity="0.4"/>
+    </g>
+
+    <!-- Ringed Planet Saturn (Top Right) -->
+    <g transform="translate(1745, 155) rotate(-22)">
+      <ellipse cx="0" cy="0" rx="115" ry="28" fill="none" stroke="url(#saturnRing)" stroke-width="14" opacity="0.55"/>
+      <circle cx="0" cy="0" r="54" fill="url(#saturnBody)"/>
+      <!-- Flat Planet Bands -->
+      <path d="M-51,-16 Q0,-6 51,-16 L53,-4 Q0,6 -53,-4 Z" fill="#FDE68A" opacity="0.5"/>
+      <path d="M-49,18 Q0,28 49,18 L44,30 Q0,39 -44,30 Z" fill="#B45309" opacity="0.45"/>
+      <!-- Front Ring Arc -->
+      <path d="M-115,0 A115,28 0 0,0 115,0" fill="none" stroke="url(#saturnRing)" stroke-width="14"/>
+    </g>
+
+    <!-- Ice Giant Uranus/Neptune (Bottom Left Edge) -->
+    <g transform="translate(85, 935) rotate(18)">
+      <circle cx="0" cy="0" r="46" fill="url(#icePlanet)"/>
+      <path d="M-43,-12 Q0,-2 43,-12 L45,2 Q0,12 -45,2 Z" fill="#7DD3FC" opacity="0.55"/>
+      <ellipse cx="0" cy="0" rx="76" ry="14" fill="none" stroke="#BAE6FD" stroke-width="5" opacity="0.65"/>
+    </g>
+
+    <!-- Red Planet Mars (Mid-Right Background) -->
+    <g transform="translate(1265, 165)">
+      <circle cx="0" cy="0" r="28" fill="url(#redPlanet)"/>
+      <circle cx="-8" cy="-6" r="6" fill="#FDA4AF" opacity="0.45"/>
+      <circle cx="10" cy="9" r="8" fill="#9F1239" opacity="0.4"/>
+      <circle cx="4" cy="-12" r="4" fill="#9F1239" opacity="0.35"/>
+    </g>
+
+    <!-- Shooting Comet (Top Center) -->
+    <g transform="translate(860, 85) rotate(-15)">
+      <polygon points="0,-9 150,0 0,9" fill="url(#cometTailBg)"/>
+      <circle cx="0" cy="0" r="10" fill="#ECFEFF"/>
+      <circle cx="0" cy="0" r="17" fill="#22D3EE" opacity="0.4"/>
+    </g>
+
+    <!-- Distant Silhouette Night Hills & Observatory at Bottom -->
+    <path d="M0,1035 Q240,985 520,1025 T1120,1015 T1680,1030 L1920,1010 L1920,1080 L0,1080 Z" fill="#06091E"/>
+  </svg>
+
+  <!-- ==================================================================== -->
+  <!-- MAIN 2-COLUMN GAME INTERFACE (100vw x 100vh, ZERO OVERFLOW)          -->
+  <!-- ==================================================================== -->
+  <main class="relative z-10 w-screen h-screen flex items-center justify-center gap-3 px-3 py-3 overflow-hidden">
+
+    <!-- LEFT COLUMN: 100-TILE BOARD (1:1 SQUARE ASPECT RATIO) -->
+    <section class="board-wrapper flex-shrink-0 flex items-center justify-center">
+      <!-- 10x10 Grid -->
+      <div id="boardGrid" class="board-grid"></div>
+
+      <!-- SVG Overlay for 10 Ladders (Jembatan Cahaya Kosmik) & 10 Snakes (Ekor Komet) -->
+      <svg id="boardSvgOverlay" class="board-svg-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+
+      <!-- 4 Pawns Layer -->
+      <div id="pawnsLayer" class="pawns-layer"></div>
+    </section>
+
+    <!-- RIGHT COLUMN: 5-SECTION STRUCTURED SIDEBAR -->
+    <aside class="flex-1 h-[calc(100vh-24px)] min-w-[350px] max-w-[540px] flex flex-col justify-between gap-2 bg-slate-900/85 backdrop-blur-md border-2 border-indigo-400/30 rounded-[22px] p-3 shadow-2xl overflow-hidden">
+
+      <!-- 1) HEADER BAR -->
+      <header class="flex items-center justify-between gap-2 bg-gradient-to-r from-indigo-950/90 via-purple-950/85 to-slate-900/90 px-3 py-2 rounded-2xl border border-indigo-400/25 flex-shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <!-- Flat Vector Planet Icon -->
+          <svg class="w-9 h-9 flex-shrink-0" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="20" fill="#F59E0B"/>
+            <path d="M14,26 Q32,34 50,26 L51,33 Q32,41 13,33 Z" fill="#FDE68A" opacity="0.65"/>
+            <ellipse cx="32" cy="32" rx="30" ry="9" transform="rotate(-22 32 32)" fill="none" stroke="#38BDF8" stroke-width="5"/>
+            <circle cx="48" cy="14" r="4" fill="#FEF08A"/>
+          </svg>
+          <div class="truncate">
+            <h1 class="font-display text-lg xl:text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-cyan-300 leading-tight truncate">
+              Alam Semestaku
+            </h1>
+            <p class="text-[11px] text-indigo-200/80 font-semibold leading-none truncate">
+              Benda-Benda Luar Angkasa • 100 Kotak
+            </p>
+          </div>
+        </div>
+
+        <!-- 4 Control Buttons -->
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button id="btnToggleMusic" onclick="toggleMusic()" title="Musik & Suara On/Off" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-600/80 hover:bg-indigo-500 text-xs font-bold text-white transition shadow">
+            <span id="musicIcon">🔊</span>
+            <span class="hidden xl:inline" id="musicLabel">Musik</span>
+          </button>
+          <button onclick="openEditorModal()" title="Editor & Atur Soal" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/90 hover:bg-amber-400 text-slate-950 text-xs font-extrabold transition shadow">
+            <span>⚙️</span>
+            <span class="hidden xl:inline">Atur Soal</span>
+          </button>
+          <button onclick="openMapInfoModal()" title="Info Peta Tangga & Komet" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-bold transition shadow">
+            <span>🗺️</span>
+            <span class="hidden xl:inline">Peta</span>
+          </button>
+          <button onclick="openResetModal()" title="Reset Permainan" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-600/85 hover:bg-rose-500 text-white text-xs font-bold transition shadow">
+            <span>🔄</span>
+            <span class="hidden xl:inline">Reset</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 2) TURN & STATUS INDICATOR -->
+      <section class="bg-slate-800/85 border border-indigo-400/25 rounded-2xl px-3 py-2 flex flex-col gap-1.5 flex-shrink-0">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] uppercase tracking-wider font-extrabold text-indigo-300">Giliran Aktif:</span>
+            <div id="activeTurnBadge" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-500 text-slate-950 font-extrabold text-xs shadow">
+              <span id="activeTurnDot" class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+              <span id="activeTurnName">TIM BIRU</span>
+            </div>
+          </div>
+          <!-- Turn Order Pills -->
+          <div class="flex items-center gap-1 text-[10px] font-extrabold">
+            <span id="orderPill0" class="px-2 py-0.5 rounded-md bg-sky-500 text-slate-950 ring-2 ring-white">Biru</span>
+            <span class="text-slate-500">→</span>
+            <span id="orderPill1" class="px-2 py-0.5 rounded-md bg-rose-500/40 text-rose-200">Merah</span>
+            <span class="text-slate-500">→</span>
+            <span id="orderPill2" class="px-2 py-0.5 rounded-md bg-emerald-500/40 text-emerald-200">Hijau</span>
+            <span class="text-slate-500">→</span>
+            <span id="orderPill3" class="px-2 py-0.5 rounded-md bg-amber-400/40 text-amber-200">Kuning</span>
+          </div>
+        </div>
+        <div id="liveStatusText" class="text-xs font-bold text-cyan-200 bg-slate-950/70 px-3 py-1.5 rounded-xl border border-cyan-500/20 truncate">
+          🚀 Siap menjelajah langit malam! Tim Biru silakan kocok 2 dadu.
+        </div>
+      </section>
+
+      <!-- 3) 4-PLAYER SCOREBOARD (GRID 2x2) -->
+      <section id="scoreboardGrid" class="grid grid-cols-2 gap-2 flex-shrink-0">
+        <!-- Populated dynamically by JS -->
+      </section>
+
+      <!-- 4) 2-DICE ROLL AREA -->
+      <section class="flex-1 min-h-0 bg-gradient-to-b from-indigo-950/90 to-slate-900/95 border-2 border-indigo-400/30 rounded-2xl p-2.5 flex flex-col justify-between gap-2">
+        <!-- Top Row: 2 Dice Visuals + Calculation Box -->
+        <div class="flex items-center justify-around gap-2 my-auto">
+          <div class="flex items-center gap-2.5">
+            <!-- Die 1 -->
+            <div id="dieBox1" class="w-14 h-14 xl:w-16 xl:h-16 rounded-2xl bg-gradient-to-br from-white to-indigo-100 shadow-lg flex items-center justify-center p-2 border-2 border-indigo-300">
+              <svg id="dieSvg1" class="w-full h-full" viewBox="0 0 100 100"></svg>
+            </div>
+            <span class="font-display text-xl font-bold text-amber-300">+</span>
+            <!-- Die 2 -->
+            <div id="dieBox2" class="w-14 h-14 xl:w-16 xl:h-16 rounded-2xl bg-gradient-to-br from-white to-indigo-100 shadow-lg flex items-center justify-center p-2 border-2 border-indigo-300">
+              <svg id="dieSvg2" class="w-full h-full" viewBox="0 0 100 100"></svg>
+            </div>
+          </div>
+
+          <!-- Step Calculation Box -->
+          <div class="flex flex-col items-center justify-center bg-slate-950/80 border border-indigo-400/30 rounded-2xl px-3.5 py-2 min-w-[125px]">
+            <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-bold">Total Langkah</span>
+            <div id="diceFormulaText" class="font-display text-lg xl:text-xl font-bold text-amber-300 leading-tight">
+              - + - = 0
+            </div>
+            <span class="text-[10px] text-slate-400 font-semibold">2 Dadu Kosmik</span>
+          </div>
+        </div>
+
+        <!-- Prominent Dice Announcement Banner (1.5s Delay Highlight) -->
+        <div id="diceAnnouncementBanner" class="w-full py-1.5 px-3 rounded-xl bg-slate-800/90 border border-amber-400/30 text-center text-xs xl:text-sm font-extrabold text-amber-200 transition-all truncate">
+          🎲 Klik tombol di bawah untuk mengocok 2 dadu!
+        </div>
+
+        <!-- Large KOCOK 2 DADU Button -->
+        <button id="btnRollDice" onclick="handleRollDice()" class="w-full py-2.5 xl:py-3 rounded-2xl font-display text-base xl:text-lg font-bold tracking-wide text-slate-950 bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 hover:from-amber-200 hover:to-orange-300 active:scale-[0.99] shadow-lg shadow-amber-500/25 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span>🎲</span>
+          <span id="btnRollDiceLabel">KOCOK 2 DADU (TIM BIRU)</span>
+        </button>
+      </section>
+
+      <!-- 5) SUMMARY FOOTER (3 CARDS) -->
+      <footer class="grid grid-cols-3 gap-2 flex-shrink-0">
+        <div class="bg-amber-500/15 border border-amber-400/35 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 font-display font-bold text-sm flex items-center justify-center flex-shrink-0">?</div>
+          <div class="leading-tight truncate">
+            <div id="footerQuestionCount" class="text-xs font-extrabold text-amber-300">40 Kotak Soal</div>
+            <div id="footerPointInfo" class="text-[10px] text-amber-100/80 font-semibold">+5 / -2 Poin</div>
+          </div>
+        </div>
+
+        <div class="bg-cyan-500/15 border border-cyan-400/35 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-cyan-400 text-slate-950 font-display font-bold text-sm flex items-center justify-center flex-shrink-0">🚀</div>
+          <div class="leading-tight truncate">
+            <div class="text-xs font-extrabold text-cyan-300">10 Tangga</div>
+            <div class="text-[10px] text-cyan-100/80 font-semibold">Jembatan Cahaya</div>
+          </div>
+        </div>
+
+        <div class="bg-pink-500/15 border border-pink-400/35 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-pink-400 text-slate-950 font-display font-bold text-sm flex items-center justify-center flex-shrink-0">☄️</div>
+          <div class="leading-tight truncate">
+            <div class="text-xs font-extrabold text-pink-300">10 Ular</div>
+            <div class="text-[10px] text-pink-100/80 font-semibold">Ekor Komet</div>
+          </div>
+        </div>
+      </footer>
+
+    </aside>
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL 1: START SCREEN OVERLAY                                        -->
+  <!-- ==================================================================== -->
+  <div id="startScreenModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-4xl bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 border-2 border-indigo-400/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+      
+      <!-- 2D Flat-Color Vector Banner -->
+      <div class="relative h-48 sm:h-56 w-full overflow-hidden flex-shrink-0">
+        <svg class="w-full h-full" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="bannerSky" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#090D2E"/>
+              <stop offset="50%" stop-color="#1E1B4B"/>
+              <stop offset="100%" stop-color="#311042"/>
+            </linearGradient>
+          </defs>
+          <rect width="1000" height="260" fill="url(#bannerSky)"/>
+          <!-- Nebula blobs -->
+          <circle cx="180" cy="120" r="140" fill="#6366F1" opacity="0.22"/>
+          <circle cx="820" cy="90" r="160" fill="#EC4899" opacity="0.2"/>
+          <circle cx="520" cy="210" r="130" fill="#06B6D4" opacity="0.18"/>
+          <!-- Stars -->
+          <g fill="#FEF08A">
+            <circle cx="70" cy="45" r="3"/><circle cx="140" cy="180" r="2.5"/><circle cx="290" cy="50" r="3.5"/>
+            <circle cx="440" cy="38" r="2.5"/><circle cx="670" cy="48" r="3"/><circle cx="760" cy="190" r="3"/>
+            <circle cx="910" cy="60" r="3.5"/><circle cx="940" cy="180" r="2.5"/>
+          </g>
+          <!-- Sun / Glowing Star on Left -->
+          <circle cx="95" cy="135" r="68" fill="#F59E0B" opacity="0.25"/>
+          <circle cx="95" cy="135" r="50" fill="#FBBF24"/>
+          <circle cx="95" cy="135" r="38" fill="#FDE047"/>
+          <!-- Earth & Moon -->
+          <g transform="translate(245, 165)">
+            <circle cx="0" cy="0" r="28" fill="#38BDF8"/>
+            <path d="M-16,-14 Q-4,-18 6,-8 Q16,2 8,16 Q-6,20 -18,8 Z" fill="#4ADE80"/>
+            <path d="M12,-18 Q22,-8 18,6 L26,2 Q28,-12 16,-20 Z" fill="#4ADE80"/>
+            <circle cx="42" cy="-24" r="8" fill="#E2E8F0"/>
+          </g>
+          <!-- Ringed Saturn on Right -->
+          <g transform="translate(855, 130) rotate(-18)">
+            <ellipse cx="0" cy="0" rx="78" ry="18" fill="none" stroke="#FDE68A" stroke-width="9" opacity="0.6"/>
+            <circle cx="0" cy="0" r="36" fill="#F59E0B"/>
+            <path d="M-34,-8 Q0,0 34,-8 L35,2 Q0,10 -35,2 Z" fill="#FEF3C7" opacity="0.55"/>
+            <path d="M-78,0 A78,18 0 0,0 78,0" fill="none" stroke="#FDE68A" stroke-width="9"/>
+          </g>
+          <!-- Shooting Comet -->
+          <g transform="translate(690, 62) rotate(-16)">
+            <polygon points="0,-7 110,0 0,7" fill="#67E8F9" opacity="0.65"/>
+            <circle cx="0" cy="0" r="8" fill="#ECFEFF"/>
+          </g>
+          <!-- Flat Vector Rocket -->
+          <g transform="translate(345, 78) rotate(32)">
+            <path d="M0,-28 C12,-14 14,8 14,22 L-14,22 C-14,8 -12,-14 0,-28 Z" fill="#F8FAFC"/>
+            <path d="M0,-28 C8,-18 10,-6 10,-6 L-10,-6 C-10,-6 -8,-18 0,-28 Z" fill="#F43F5E"/>
+            <polygon points="-14,10 -24,24 -14,22" fill="#F43F5E"/>
+            <polygon points="14,10 24,24 14,22" fill="#F43F5E"/>
+            <circle cx="0" cy="4" r="6" fill="#38BDF8"/>
+            <polygon points="-8,22 0,38 8,22" fill="#FACC15"/>
+          </g>
+        </svg>
+
+        <!-- Title Overlay on Banner -->
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent flex flex-col items-center justify-end pb-4 px-6 text-center">
+          <span class="px-3.5 py-1 rounded-full bg-indigo-500/80 text-indigo-100 font-extrabold text-xs uppercase tracking-widest mb-1.5 shadow">
+            Game Edukasi Interaktif • Ular Tangga 100 Kotak
+          </span>
+          <h1 class="font-display text-3xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-cyan-300 drop-shadow">
+            ALAM SEMESTAKU
+          </h1>
+          <p class="text-xs sm:text-sm text-indigo-200 font-semibold mt-0.5">
+            Petualangan Langit Malam & Benda-Benda Luar Angkasa
+          </p>
+        </div>
+      </div>
+
+      <!-- Rules & Feature Cards -->
+      <div class="p-5 sm:p-6 flex-1 overflow-y-auto modal-scroll space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="bg-slate-800/80 border border-indigo-400/25 rounded-2xl p-3.5">
+            <div class="flex items-center gap-2 font-display font-bold text-amber-300 text-sm mb-1">
+              <span>🎲</span> <span>4 Tim & 2 Dadu</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              4 Pion (<strong class="text-sky-300">Biru</strong>, <strong class="text-rose-300">Merah</strong>, <strong class="text-emerald-300">Hijau</strong>, <strong class="text-amber-300">Kuning</strong>) bergiliran mengocok 2 dadu. Setelah dadu berhenti, ada <strong>jeda 1,5 detik</strong> sebelum pion melompat!
+            </p>
+          </div>
+
+          <div class="bg-slate-800/80 border border-indigo-400/25 rounded-2xl p-3.5">
+            <div class="flex items-center gap-2 font-display font-bold text-cyan-300 text-sm mb-1">
+              <span>🚀</span> <span>10 Tangga & 10 Komet</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Berhenti di kaki <strong>Jembatan Cahaya (Tangga)</strong> akan melesat naik! Berhenti di kepala <strong>Ekor Komet (Ular)</strong> akan meluncur turun.
+            </p>
+          </div>
+
+          <div class="bg-slate-800/80 border border-indigo-400/25 rounded-2xl p-3.5">
+            <div class="flex items-center gap-2 font-display font-bold text-pink-300 text-sm mb-1">
+              <span>❓</span> <span id="startCardQuestionTitle">40 Kotak Soal & Timer</span>
+            </div>
+            <p id="startCardQuestionDesc" class="text-xs text-slate-300 leading-relaxed">
+              Berhenti di kotak bertanda <strong>"?"</strong> memunculkan kuis Benda Luar Angkasa (durasi <strong>25 detik</strong>). Benar <strong>+5 poin</strong>, salah/habis waktu <strong>-2 poin</strong>!
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button onclick="openEditorModal()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl font-display font-bold text-sm sm:text-base bg-slate-800 hover:bg-slate-700 text-amber-300 border-2 border-amber-400/50 transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+            <span>🛠️</span>
+            <span>PENGATURAN & BUAT SOAL SENDIRI</span>
+          </button>
+          <button onclick="startGameFromIntro()" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-display font-bold text-base sm:text-lg bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 transition flex items-center justify-center gap-2 shadow-xl shadow-cyan-500/25 cursor-pointer">
+            <span>🚀</span>
+            <span>MULAI BERMAIN (START)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL 2: QUIZ MULTIPLE CHOICE (2x2 GRID, 25s TIMER)                  -->
+  <!-- ==================================================================== -->
+  <div id="quizModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md items-center justify-center p-4">
+    <div class="w-full max-w-3xl bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 border-2 border-amber-400/60 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+      
+      <!-- Quiz Header -->
+      <div class="px-6 py-4 bg-slate-900/90 border-b border-indigo-400/25 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div id="quizTeamBadge" class="px-3.5 py-1.5 rounded-xl font-display font-bold text-sm bg-sky-500 text-slate-950">
+            TIM BIRU • KOTAK 12
+          </div>
+          <span class="text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 px-3 py-1 rounded-lg">
+            🌟 Tantangan Benda Luar Angkasa
+          </span>
+        </div>
+
+        <!-- Timer Pill -->
+        <div class="flex items-center gap-2 bg-slate-950 px-4 py-1.5 rounded-2xl border border-rose-400/40">
+          <span class="text-base">⏱️</span>
+          <span id="quizTimerText" class="font-display text-xl font-bold text-amber-300">25s</span>
+        </div>
+      </div>
+
+      <!-- Timer Progress Bar -->
+      <div class="w-full h-2 bg-slate-800">
+        <div id="quizTimerBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width: 100%;"></div>
+      </div>
+
+      <!-- Question Body -->
+      <div class="p-6 space-y-5">
+        <div class="bg-slate-800/90 border border-indigo-400/30 rounded-2xl p-5 shadow-inner">
+          <p id="quizQuestionText" class="text-base sm:text-xl font-extrabold text-white leading-relaxed">
+            Pertanyaan akan tampil di sini...
+          </p>
+        </div>
+
+        <!-- 2x2 Options Grid -->
+        <div id="quizOptionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <!-- Buttons A, B, C, D injected by JS -->
+        </div>
+
+        <!-- Feedback Banner (Hidden until answered) -->
+        <div id="quizFeedbackBox" class="hidden rounded-2xl p-4 border text-sm font-bold flex items-center justify-between gap-4">
+          <div id="quizFeedbackText" class="leading-relaxed"></div>
+          <button id="btnQuizContinue" onclick="closeQuizAndContinue()" class="px-5 py-2.5 rounded-xl font-display font-bold text-sm bg-amber-400 hover:bg-amber-300 text-slate-950 flex-shrink-0 shadow-lg cursor-pointer">
+            LANJUTKAN →
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL 3: PENGATURAN & EDITOR SOAL (LOCALSTORAGE PERSISTED)           -->
+  <!-- ==================================================================== -->
+  <div id="editorModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md items-center justify-center p-4">
+    <div class="w-full max-w-5xl bg-slate-900 border-2 border-indigo-400/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-indigo-950/90 border-b border-indigo-400/30 flex items-center justify-between">
+        <div>
+          <h2 class="font-display text-xl font-bold text-amber-300">⚙️ Pengaturan Game & Editor Soal ("Alam Semestaku")</h2>
+          <p class="text-xs text-indigo-200">Ubah jumlah sebaran kotak soal, durasi waktu, poin, atau kelola bank soal sendiri (otomatis tersimpan).</p>
+        </div>
+        <button onclick="closeEditorModal()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-600 text-white text-xs font-bold transition cursor-pointer">
+          ✕ Tutup
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-5 overflow-y-auto modal-scroll flex-1 space-y-5">
+        
+        <!-- Game Parameters Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-800/80 p-4 rounded-2xl border border-indigo-400/25">
+          <div>
+            <label class="block text-xs font-extrabold text-amber-300 mb-1">Jumlah Kotak Soal (?)</label>
+            <input id="inputQuestionCount" type="number" min="5" max="65" value="40" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/40 text-white font-bold text-sm" />
+            <span class="text-[10px] text-slate-400">Sebaran merata di 100 kotak (Default: 40)</span>
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-cyan-300 mb-1">Durasi Timer (Detik)</label>
+            <input id="inputTimerSeconds" type="number" min="5" max="120" value="25" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/40 text-white font-bold text-sm" />
+            <span class="text-[10px] text-slate-400">Waktu menjawab per soal (Default: 25)</span>
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-emerald-300 mb-1">Poin Jawaban Benar</label>
+            <input id="inputPointCorrect" type="number" min="1" max="100" value="5" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/40 text-white font-bold text-sm" />
+            <span class="text-[10px] text-slate-400">Default: +5 Poin</span>
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-rose-300 mb-1">Poin Salah / Habis Waktu</label>
+            <input id="inputPointWrong" type="number" min="-50" max="0" value="-2" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/40 text-white font-bold text-sm" />
+            <span class="text-[10px] text-slate-400">Default: -2 Poin</span>
+          </div>
+        </div>
+
+        <!-- Add / Edit Single Question Form -->
+        <div class="bg-slate-800/70 p-4 rounded-2xl border border-indigo-400/25 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 id="formQuestionTitle" class="font-display text-sm font-bold text-cyan-300">➕ Tambah Soal Baru ke Bank Soal</h3>
+            <span id="editorQuestionTotalBadge" class="text-xs font-extrabold px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white">Total: 40 Soal</span>
+          </div>
+          <input type="hidden" id="editQuestionIndex" value="-1" />
+          <div>
+            <input id="inputQText" type="text" placeholder="Tulis pertanyaan tentang benda luar angkasa..." class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-indigo-400/35 text-white text-xs font-semibold" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            <input id="inputQOptA" type="text" placeholder="Pilihan A" class="px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/30 text-white text-xs" />
+            <input id="inputQOptB" type="text" placeholder="Pilihan B" class="px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/30 text-white text-xs" />
+            <input id="inputQOptC" type="text" placeholder="Pilihan C" class="px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/30 text-white text-xs" />
+            <input id="inputQOptD" type="text" placeholder="Pilihan D" class="px-3 py-2 rounded-xl bg-slate-950 border border-indigo-400/30 text-white text-xs" />
+            <div class="flex items-center gap-2">
+              <select id="inputQKey" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-amber-400/50 text-amber-300 font-bold text-xs">
+                <option value="0">Kunci: A</option>
+                <option value="1">Kunci: B</option>
+                <option value="2">Kunci: C</option>
+                <option value="3">Kunci: D</option>
+              </select>
+              <button onclick="saveSingleQuestion()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition flex-shrink-0 cursor-pointer">
+                Simpan Soal
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question List Table -->
+        <div class="bg-slate-950/70 rounded-2xl border border-indigo-400/20 p-3 max-h-60 overflow-y-auto modal-scroll space-y-2" id="editorQuestionsList">
+          <!-- Rendered by JS -->
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-slate-950 border-t border-indigo-400/25 flex flex-wrap items-center justify-between gap-3">
+        <button onclick="restoreDefaultQuestions()" class="px-4 py-2 rounded-xl bg-rose-600/30 hover:bg-rose-600 border border-rose-400/40 text-rose-200 hover:text-white text-xs font-bold transition cursor-pointer">
+          🔄 Kembalikan 40 Soal Bawaan AI
+        </button>
+        <div class="flex items-center gap-2.5">
+          <button onclick="applySettingsAndRebuildBoard()" class="px-6 py-2.5 rounded-xl font-display font-bold text-sm bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 shadow-lg transition cursor-pointer">
+            ✅ TERAPKAN PENGATURAN & ACAK KOTAK SOAL
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL 4: INFO PETA (10 TANGGA & 10 KOMET)                            -->
+  <!-- ==================================================================== -->
+  <div id="mapInfoModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-slate-900 border-2 border-cyan-400/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-6 py-4 bg-indigo-950 border-b border-cyan-400/25 flex items-center justify-between">
+        <h2 class="font-display text-lg font-bold text-cyan-300">🗺️ Peta Koordinat Tangga Cahaya & Ekor Komet</h2>
+        <button onclick="closeMapInfoModal()" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-rose-600 text-xs font-bold">✕ Tutup</button>
+      </div>
+      <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div class="bg-cyan-500/10 border border-cyan-400/30 rounded-2xl p-4 space-y-2">
+          <h3 class="font-display font-bold text-sm text-cyan-300 flex items-center gap-2">
+            <span>🚀</span> <span>10 Jembatan Cahaya (Tangga Naik)</span>
+          </h3>
+          <div class="grid grid-cols-2 gap-1.5 font-bold text-cyan-100">
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 4 ➔ 25</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 8 ➔ 29</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 14 ➔ 35</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 21 ➔ 42</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 28 ➔ 50</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 36 ➔ 57</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 44 ➔ 66</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 51 ➔ 72</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 63 ➔ 84</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 71 ➔ 92</div>
+          </div>
+        </div>
+        <div class="bg-pink-500/10 border border-pink-400/30 rounded-2xl p-4 space-y-2">
+          <h3 class="font-display font-bold text-sm text-pink-300 flex items-center gap-2">
+            <span>☄️</span> <span>10 Ekor Komet (Ular Turun)</span>
+          </h3>
+          <div class="grid grid-cols-2 gap-1.5 font-bold text-pink-100">
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 17 ➔ 6</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 27 ➔ 10</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 34 ➔ 15</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 47 ➔ 26</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 54 ➔ 33</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 62 ➔ 40</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 69 ➔ 49</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 81 ➔ 60</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 88 ➔ 67</div>
+            <div class="bg-slate-950/60 px-2.5 py-1.5 rounded-lg">Kotak 97 ➔ 76</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL 5: RESET CONFIRMATION & VICTORY MODAL                          -->
+  <!-- ==================================================================== -->
+  <div id="resetModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-900 border-2 border-rose-400/40 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+      <div class="text-4xl">🔄</div>
+      <h3 class="font-display text-xl font-bold text-white">Mulai Ulang Permainan?</h3>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Posisi ke-4 pion akan kembali ke Kotak 1 dan skor direset ke 0, serta sebaran kotak soal akan diacak ulang.
+      </p>
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <button onclick="closeResetModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer">Batal</button>
+        <button onclick="confirmResetGame()" class="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-xs font-extrabold text-white shadow-lg cursor-pointer">Ya, Reset Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="victoryModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 border-2 border-amber-400 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+      <div class="text-5xl animate-bounce">🏆</div>
+      <h2 id="victoryTitle" class="font-display text-2xl sm:text-3xl font-bold text-amber-300">TIM BIRU MENCAPAI KOTAK 100!</h2>
+      <p class="text-xs sm:text-sm text-indigo-200">Penjelajahan Alam Semestaku selesai! Berikut klasemen akhir poin dan posisi tim:</p>
+      <div id="victoryLeaderboard" class="space-y-2 text-left bg-slate-950/80 p-4 rounded-2xl border border-indigo-400/30"></div>
+      <button onclick="confirmResetGame()" class="w-full py-3 rounded-2xl font-display font-bold text-base bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 shadow-xl cursor-pointer">
+        🚀 MAIN LAGI DARI AWAL
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- JAVASCRIPT: COMPLETE GAME ENGINE, AUDIO SYNTH & 40 SPACE QUESTIONS   -->
+  <!-- ==================================================================== -->
+  <script>
+    /************************************************************************
+     * 1. BANK 40 SOAL LENGKAP: BENDA-BENDA LUAR ANGKASA (TANPA PLACEHOLDER)
+     ************************************************************************/
+    const DEFAULT_QUESTIONS = [
+      {
+        q: "Pusat dari Sistem Tata Surya kita yang merupakan sebuah bintang raksasa pemancar cahaya sendiri adalah...",
+        options: ["Bulan", "Matahari", "Jupiter", "Komet Halley"],
+        ans: 1,
+        info: "Matahari adalah bintang yang menjadi pusat Tata Surya karena memiliki massa dan gaya gravitasi terbesar."
+      },
+      {
+        q: "Planet yang letaknya paling dekat dengan Matahari sekaligus menjadi planet terkecil di Tata Surya adalah...",
+        options: ["Merkurius", "Venus", "Mars", "Bumi"],
+        ans: 0,
+        info: "Merkurius adalah planet terdekat dari Matahari dan memiliki ukuran paling kecil di antara 8 planet."
+      },
+      {
+        q: "Planet yang dijuluki sebagai 'Bintang Kejora' atau 'Bintang Fajar' karena tampak sangat terang di langit malam dan pagi hari adalah...",
+        options: ["Mars", "Saturnus", "Venus", "Merkurius"],
+        ans: 2,
+        info: "Venus memantulkan cahaya Matahari dengan sangat kuat melalui lapisan atmosfer tebalnya sehingga tampak berkilau."
+      },
+      {
+        q: "Meskipun bukan planet terdekat dari Matahari, planet ini adalah yang paling panas di Tata Surya karena efek rumah kaca atmosfer CO2-nya. Planet tersebut adalah...",
+        options: ["Merkurius", "Venus", "Mars", "Jupiter"],
+        ans: 1,
+        info: "Atmosfer Venus yang sangat tebal memerangkap panas Matahari hingga suhunya mencapai lebih dari 460°C."
+      },
+      {
+        q: "Planet tempat tinggal kita yang dijuluki 'Planet Biru' karena sebagian besar permukaannya diselimuti air adalah...",
+        options: ["Neptunus", "Uranus", "Bumi", "Venus"],
+        ans: 2,
+        info: "Sekitar 71% permukaan Bumi tertutup oleh lautan dan atmosfernya kaya akan oksigen."
+      },
+      {
+        q: "Benda langit yang menjadi satu-satunya satelit alami milik planet Bumi adalah...",
+        options: ["Phobos", "Titan", "Bulan", "Ganymede"],
+        ans: 2,
+        info: "Bulan adalah satelit alami Bumi yang berevolusi mengelilingi Bumi dan memantulkan sinar Matahari di malam hari."
+      },
+      {
+        q: "Planet keempat dari Matahari yang dijuluki sebagai 'Planet Merah' karena permukaannya kaya akan debu karat besi oksida adalah...",
+        options: ["Mars", "Jupiter", "Venus", "Merkurius"],
+        ans: 0,
+        info: "Mars tampak kemerahan karena tanah dan batuan di permukaannya mengandung banyak besi oksida."
+      },
+      {
+        q: "Dua satelit alami berukuran kecil yang mengorbit mengelilingi planet Mars bernama...",
+        options: ["Titan dan Enceladus", "Io dan Europa", "Phobos dan Deimos", "Triton dan Nereid"],
+        ans: 2,
+        info: "Mars memiliki dua satelit alami berbentuk tidak beraturan, yaitu Phobos dan Deimos."
+      },
+      {
+        q: "Kumpulan ribuan batuan langit yang berputar mengelilingi Matahari dan terletak di antara orbit planet Mars dan Jupiter disebut...",
+        options: ["Sabuk Kuiper", "Sabuk Asteroid", "Ekor Komet", "Cincin Saturnus"],
+        ans: 1,
+        info: "Sabuk Asteroid memisahkan kelompok planet dalam (terestrial) dan planet luar (raksasa gas)."
+      },
+      {
+        q: "Planet terbesar di dalam Sistem Tata Surya kita yang memiliki ciri khas 'Bintik Merah Raksasa' (badai abadi) adalah...",
+        options: ["Saturnus", "Jupiter", "Uranus", "Neptunus"],
+        ans: 1,
+        info: "Jupiter adalah planet raksasa gas terbesar dengan diameter sekitar 11 kali diameter Bumi."
+      },
+      {
+        q: "Satelit alami milik planet Jupiter yang sekaligus merupakan satelit terbesar di seluruh Tata Surya adalah...",
+        options: ["Ganymede", "Bulan", "Titan", "Callisto"],
+        ans: 0,
+        info: "Ganymede adalah satelit terbesar milik Jupiter yang ukurannya bahkan lebih besar daripada planet Merkurius."
+      },
+      {
+        q: "Planet keenam dari Matahari yang sangat terkenal karena memiliki cincin paling lebar dan indah dari bongkahan es serta debu adalah...",
+        options: ["Uranus", "Jupiter", "Saturnus", "Neptunus"],
+        ans: 2,
+        info: "Saturnus memiliki sistem cincin raksasa yang sangat terang dan terdiri dari miliaran partikel es dan batu."
+      },
+      {
+        q: "Satelit terbesar milik planet Saturnus yang unik karena memiliki lapisan atmosfer tebal dan danau metana cair adalah...",
+        options: ["Europa", "Titan", "Phobos", "Triton"],
+        ans: 1,
+        info: "Titan adalah satelit terbesar Saturnus dan satu-satunya satelit di Tata Surya yang memiliki atmosfer padat."
+      },
+      {
+        q: "Planet ketujuh dari Matahari yang berwarna biru muda kehijauan dan unik karena berotasi miring hampir menggelinding (98 derajat) adalah...",
+        options: ["Uranus", "Neptunus", "Saturnus", "Bumi"],
+        ans: 0,
+        info: "Uranus adalah planet raksasa es yang sumbu rotasinya miring ekstrem hingga kutubnya menghadap ke arah Matahari."
+      },
+      {
+        q: "Planet terjauh dari Matahari (urutan ke-8) yang berwarna biru tua dan memiliki hembusan angin paling kencang di Tata Surya adalah...",
+        options: ["Uranus", "Saturnus", "Neptunus", "Mars"],
+        ans: 2,
+        info: "Neptunus adalah planet kedelapan yang berjarak sekitar 4,5 miliar km dari Matahari."
+      },
+      {
+        q: "Benda langit yang tersusun dari es, debu, dan gas beku yang ketika mendekati Matahari akan membentuk ekor cahaya panjang disebut...",
+        options: ["Asteroid", "Komet", "Meteorit", "Satelit"],
+        ans: 1,
+        info: "Komet sering dijuluki 'Bintang Berekor'. Saat mendekati Matahari, es pada inti komet menguap membentuk ekor."
+      },
+      {
+        q: "Arah ekor komet saat melintas di dekat Matahari selalu menghadap ke arah...",
+        options: ["Mendekati pusat Matahari", "Menjauhi Matahari", "Menuju planet Bumi", "Mengikuti arah rotasi Bumi"],
+        ans: 1,
+        info: "Ekor komet selalu terdorong menjauhi Matahari akibat terpaan angin matahari dan tekanan radiasi."
+      },
+      {
+        q: "Komet terkenal yang muncul mendekati Bumi secara berkala setiap 76 tahun sekali adalah...",
+        options: ["Komet Halley", "Komet Encke", "Komet Hale-Bopp", "Komet Shoemaker-Levy"],
+        ans: 0,
+        info: "Komet Halley dinamai dari astronom Edmond Halley yang berhasil menghitung periode kemunculannya setiap 75-76 tahun."
+      },
+      {
+        q: "Batuan angkasa berukuran kecil yang masuk dan bergesekan dengan atmosfer Bumi sehingga berpijar tampak seperti 'bintang jatuh' disebut...",
+        options: ["Meteoroid", "Meteor", "Meteorit", "Asteroid"],
+        ans: 1,
+        info: "Lintasan cahaya pijar batuan yang terbakar di atmosfer Bumi disebut Meteor (bintang jatuh)."
+      },
+      {
+        q: "Sisa batuan meteor yang tidak habis terbakar di atmosfer dan berhasil jatuh sampai menumbuk permukaan tanah Bumi disebut...",
+        options: ["Meteoroid", "Meteor", "Meteorit", "Komet"],
+        ans: 2,
+        info: "Saat masih di luar angkasa disebut Meteoroid, saat berpijar di atmosfer disebut Meteor, dan saat tiba di tanah Bumi disebut Meteorit."
+      },
+      {
+        q: "Kelompok bintang di langit malam yang tampak saling berhubungan membentuk pola tertentu seperti kalajengking, biduk, atau layang-layang disebut...",
+        options: ["Galaksi", "Nebula", "Rasi Bintang", "Tata Surya"],
+        ans: 2,
+        info: "Rasi Bintang (konstelasi) digunakan sejak zaman dahulu oleh pelaut untuk menentukan arah mata angin di malam hari."
+      },
+      {
+        q: "Rasi bintang berbentuk salib/layang-layang yang digunakan oleh para pelaut untuk menunjukkan arah Selatan adalah...",
+        options: ["Rasi Biduk (Ursa Major)", "Rasi Pari / Salib Selatan (Crux)", "Rasi Waluku (Orion)", "Rasi Scorpio"],
+        ans: 1,
+        info: "Rasi Pari (Crux / Southern Cross) selalu menunjuk ke arah Kutub Selatan langit."
+      },
+      {
+        q: "Rasi bintang berbentuk gayung/bajak di langit malam yang membantu petualang menemukan arah Utara adalah...",
+        options: ["Rasi Biduk (Ursa Major)", "Rasi Pari (Crux)", "Rasi Leo", "Rasi Cassiopeia"],
+        ans: 0,
+        info: "Rasi Biduk (Big Dipper / Ursa Major) berada di belahan langit utara dan menunjuk ke Bintang Kutub Utara (Polaris)."
+      },
+      {
+        q: "Kumpulan miliaran bintang, gas, debu kosmik, dan sistem tata surya yang terikat oleh gaya gravitasi dalam ruang angkasa yang luas disebut...",
+        options: ["Rasi Bintang", "Galaksi", "Sabuk Asteroid", "Atmosfer"],
+        ans: 1,
+        info: "Galaksi adalah sistem raksasa yang terdiri dari ratusan miliar bintang, gas, dan debu antarbintang."
+      },
+      {
+        q: "Sistem Tata Surya kita (Matahari, Bumi, dan planet lainnya) berada di dalam sebuah galaksi berbentuk spiral yang bernama...",
+        options: ["Galaksi Andromeda", "Galaksi Sombrero", "Galaksi Bima Sakti (Milky Way)", "Galaksi Magellan"],
+        ans: 2,
+        info: "Galaksi Bima Sakti (Milky Way) adalah galaksi spiral berbatang tempat Tata Surya kita bernaung."
+      },
+      {
+        q: "Galaksi besar berbentuk spiral yang letaknya paling dekat sebagai tetangga Galaksi Bima Sakti adalah...",
+        options: ["Galaksi Andromeda", "Galaksi Triangulum", "Galaksi Whirlpool", "Galaksi Centaurus"],
+        ans: 0,
+        info: "Galaksi Andromeda berjarak sekitar 2,5 juta tahun cahaya dari Bima Sakti dan dapat dilihat di langit malam yang sangat gelap."
+      },
+      {
+        q: "Awan gas dan debu raksasa yang berwarna-warni di luar angkasa dan dikenal sebagai 'tempat kelahiran bintang-bintang baru' disebut...",
+        options: ["Lubang Hitam", "Nebula", "Kawah Komet", "Korona"],
+        ans: 1,
+        info: "Nebula (seperti Nebula Orion) adalah awan antarbintang tempat gas hidrogen memadat membentuk bintang baru."
+      },
+      {
+        q: "Objek luar angkasa yang memiliki tarikan gravitasi luar biasa kuat sehingga benda apa pun termasuk cahaya tidak dapat lolos darinya disebut...",
+        options: ["Bintang Neutron", "Lubang Hitam (Black Hole)", "Supernova", "Quasar"],
+        ans: 1,
+        info: "Lubang Hitam (Black Hole) terbentuk dari runtuhnya bintang bermassa sangat besar di akhir hidupnya."
+      },
+      {
+        q: "Perputaran planet Bumi pada porosnya (sumbunya) yang membutuhkan waktu sekitar 24 jam (1 hari) disebut...",
+        options: ["Revolusi Bumi", "Rotasi Bumi", "Gerhana Bumi", "Orbit Bumi"],
+        ans: 1,
+        info: "Rotasi Bumi menyebabkan terjadinya pergantian siang dan malam serta gerak semu harian Matahari."
+      },
+      {
+        q: "Perputaran Bumi mengelilingi Matahari dalam lintasan orbitnya selama 365¼ hari (1 tahun) disebut...",
+        options: ["Rotasi Bumi", "Revolusi Bumi", "Nutasi Bumi", "Gravitasi Bumi"],
+        ans: 1,
+        info: "Revolusi Bumi menjadi dasar perhitungan kalender Masehi dan menyebabkan pergantian musim di Bumi."
+      },
+      {
+        q: "Peristiwa langit ketika posisi Bulan berada tepat di antara Matahari dan Bumi dalam satu garis lurus sehingga cahaya Matahari ke Bumi terhalang disebut...",
+        options: ["Gerhana Bulan", "Gerhana Matahari", "Bulan Purnama", "Tahun Kabisat"],
+        ans: 1,
+        info: "Gerhana Matahari terjadi pada siang hari saat fase Bulan Baru ketika bayangan Bulan jatuh ke permukaan Bumi."
+      },
+      {
+        q: "Peristiwa ketika Bumi berada tepat di antara Matahari dan Bulan sehingga Bulan masuk ke dalam bayangan gelap (umbra) Bumi pada malam hari disebut...",
+        options: ["Gerhana Matahari", "Gerhana Bulan", "Fase Bulan Sabit", "Bintang Jatuh"],
+        ans: 1,
+        info: "Gerhana Bulan terjadi saat fase Bulan Purnama ketika Bumi menghalangi sinar Matahari yang menuju ke Bulan."
+      },
+      {
+        q: "Di langit malam, bintang tampak memiliki warna yang berbeda-beda. Bintang yang memiliki suhu permukaan PALING PANAS akan memancarkan warna...",
+        options: ["Merah", "Kuning", "Putih-Biru", "Jingga"],
+        ans: 2,
+        info: "Bintang berwarna biru atau putih-kebiruan memiliki suhu terpanas (>25.000°C), sedangkan bintang merah paling dingin."
+      },
+      {
+        q: "Lapisan atmosfer Matahari bagian paling luar yang tampak bersinar bagaikan mahkota putih saat terjadi Gerhana Matahari Total disebut...",
+        options: ["Inti Matahari", "Fotosfer", "Kromosfer", "Korona"],
+        ans: 3,
+        info: "Korona berarti 'mahkota', yaitu lapisan atmosfer terluar Matahari yang sangat panas dan terlihat saat gerhana total."
+      },
+      {
+        q: "Planet-planet di bawah ini yang termasuk kelompok Planet Dalam (terletak di bagian dalam Sabuk Asteroid) adalah...",
+        options: ["Jupiter, Saturnus, Uranus, Neptunus", "Merkurius, Venus, Bumi, Mars", "Bumi, Mars, Jupiter, Saturnus", "Merkurius, Venus, Jupiter, Uranus"],
+        ans: 1,
+        info: "Merkurius, Venus, Bumi, dan Mars adalah 4 planet dalam (terestrial) yang permukaannya tersusun atas batuan padat."
+      },
+      {
+        q: "Hampir semua planet berotasi dari barat ke timur (berlawanan jarum jam), KECUALI satu planet yang berotasi searah jarum jam (matahari terbit dari barat), yaitu...",
+        options: ["Mars", "Venus", "Jupiter", "Merkurius"],
+        ans: 1,
+        info: "Venus mengalami rotasi retrograde (searah jarum jam), sehingga di Venus Matahari tampak terbit dari sebelah barat."
+      },
+      {
+        q: "Sejak tahun 2006, Pluto tidak lagi digolongkan sebagai planet utama ke-9 melainkan dikelompokkan sebagai...",
+        options: ["Asteroid Raksasa", "Planet Katai (Dwarf Planet)", "Satelit Neptunus", "Komet Beku"],
+        ans: 1,
+        info: "IAU menetapkan Pluto, Ceres, dan Eris sebagai Planet Katai (Dwarf Planet) karena belum membersihkan lingkungan orbitnya."
+      },
+      {
+        q: "Alat optik yang digunakan oleh para astronom untuk mengamati benda-benda langit yang sangat jauh agar tampak jelas dan besar disebut...",
+        options: ["Mikroskop", "Periskop", "Teleskop (Teropong Bintang)", "Stetoskop"],
+        ans: 2,
+        info: "Teleskop mengumpulkan cahaya dari benda langit yang jauh. Contoh teleskop luar angkasa terkenal adalah Hubble dan James Webb."
+      },
+      {
+        q: "Permukaan Bulan tampak dipenuhi oleh banyak cekungan bundar atau kawah. Kawah-kawah di Bulan tersebut terbentuk akibat...",
+        options: ["Letusan gunung berapi bawah laut", "Tumbukan meteorit dan asteroid sejak jutaan tahun lalu", "Kikis angin dan hujan deras", "Tarikan gravitasi planet Jupiter"],
+        ans: 1,
+        info: "Karena Bulan tidak memiliki atmosfer pelindung seperti Bumi, batuan angkasa langsung menabrak permukaannya dan membentuk kawah."
+      },
+      {
+        q: "Benda buatan manusia yang diluncurkan dengan roket untuk mengorbit Bumi guna keperluan telekomunikasi, sinyal internet, dan prakiraan cuaca disebut...",
+        options: ["Satelit Alami", "Satelit Buatan", "Stasiun Komet", "Meteoroid Buatan"],
+        ans: 1,
+        info: "Satelit buatan (seperti Satelit Palapa dan Satelit Nusantara milik Indonesia) mengorbit Bumi untuk membantu komunikasi dan pemetaan."
+      }
+    ];
+
+    /************************************************************************
+     * 2. KOORDINAT 10 TANGGA (NAIK) & 10 ULAR/KOMET (TURUN) SESUAI SPESIFIKASI
+     ************************************************************************/
+    const LADDERS = [
+      { from: 4, to: 25 },
+      { from: 8, to: 29 },
+      { from: 14, to: 35 },
+      { from: 21, to: 42 },
+      { from: 28, to: 50 },
+      { from: 36, to: 57 },
+      { from: 44, to: 66 },
+      { from: 51, to: 72 },
+      { from: 63, to: 84 },
+      { from: 71, to: 92 }
+    ];
+
+    const SNAKES = [
+      { from: 17, to: 6 },
+      { from: 27, to: 10 },
+      { from: 34, to: 15 },
+      { from: 47, to: 26 },
+      { from: 54, to: 33 },
+      { from: 62, to: 40 },
+      { from: 69, to: 49 },
+      { from: 81, to: 60 },
+      { from: 88, to: 67 },
+      { from: 97, to: 76 }
+    ];
+
+    /************************************************************************
+     * 3. DATA 4 TIM / PION (BIRU -> MERAH -> HIJAU -> KUNING)
+     ************************************************************************/
+    const TEAMS = [
+      {
+        id: 0,
+        name: "TIM BIRU",
+        shortName: "Biru",
+        shipName: "Roket Orion",
+        colorHex: "#38BDF8",
+        darkHex: "#0284C7",
+        badgeClass: "bg-sky-500 text-slate-950",
+        cardBorder: "border-sky-400/50",
+        cardBg: "from-sky-950/85 to-slate-900/90",
+        offset: { x: -1.6, y: -1.6 }
+      },
+      {
+        id: 1,
+        name: "TIM MERAH",
+        shortName: "Merah",
+        shipName: "Roket Antares",
+        colorHex: "#FB7185",
+        darkHex: "#E11D48",
+        badgeClass: "bg-rose-500 text-white",
+        cardBorder: "border-rose-400/50",
+        cardBg: "from-rose-950/85 to-slate-900/90",
+        offset: { x: 1.6, y: -1.6 }
+      },
+      {
+        id: 2,
+        name: "TIM HIJAU",
+        shortName: "Hijau",
+        shipName: "Roket Vega",
+        colorHex: "#34D399",
+        darkHex: "#059669",
+        badgeClass: "bg-emerald-400 text-slate-950",
+        cardBorder: "border-emerald-400/50",
+        cardBg: "from-emerald-950/85 to-slate-900/90",
+        offset: { x: -1.6, y: 1.6 }
+      },
+      {
+        id: 3,
+        name: "TIM KUNING",
+        shortName: "Kuning",
+        shipName: "Roket Sirius",
+        colorHex: "#FACC15",
+        darkHex: "#CA8A04",
+        badgeClass: "bg-amber-400 text-slate-950",
+        cardBorder: "border-amber-400/50",
+        cardBg: "from-amber-950/85 to-slate-900/90",
+        offset: { x: 1.6, y: 1.6 }
+      }
+    ];
+
+    /************************************************************************
+     * 4. STATE PERMAINAN & PENGATURAN (TERSIMPAN DI LOCALSTORAGE)
+     ************************************************************************/
+    const STORAGE_KEY_SETTINGS = "alamSemestaku_settings_v1";
+    const STORAGE_KEY_QUESTIONS = "alamSemestaku_questions_v1";
+
+    let gameConfig = {
+      questionTileCount: 40,
+      timerSeconds: 25,
+      pointCorrect: 5,
+      pointWrong: -2
+    };
+
+    let questionsBank = [];
+    let questionTilesSet = new Set();
+    let usedQuestionIndices = new Set();
+
+    let players = [
+      { id: 0, pos: 1, score: 0 },
+      { id: 1, pos: 1, score: 0 },
+      { id: 2, pos: 1, score: 0 },
+      { id: 3, pos: 1, score: 0 }
+    ];
+
+    let currentTurn = 0;
+    let isBusy = false;
+    let activeQuizTimer = null;
+    let currentQuizTimeLeft = 25;
+    let currentQuizQuestion = null;
+    let pendingTurnAdvance = false;
+
+    /************************************************************************
+     * 5. WEB AUDIO API SYNTHESIZER (MUSIK LATAR KOSMIK & EFEK SUARA)
+     ************************************************************************/
+    let audioCtx = null;
+    let soundEnabled = true;
+    let bgmInterval = null;
+    let bgmStep = 0;
+
+    function ensureAudioCtx() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = "sine", duration = 0.15, vol = 0.12, slideTo = null) {
+      if (!soundEnabled) return;
+      try {
+        ensureAudioCtx();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slideTo) {
+          osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+        }
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (e) {}
+    }
+
+    function sfxDiceShake() {
+      playTone(260 + Math.random() * 180, "triangle", 0.06, 0.08);
+    }
+
+    function sfxDiceReveal() {
+      playTone(523.25, "sine", 0.14, 0.14);
+      setTimeout(() => playTone(659.25, "sine", 0.18, 0.15), 110);
+      setTimeout(() => playTone(783.99, "triangle", 0.28, 0.16), 220);
+    }
+
+    function sfxPawnHop(stepIndex) {
+      const baseFreq = 360 + (stepIndex % 8) * 45;
+      playTone(baseFreq, "sine", 0.11, 0.13, baseFreq * 1.25);
+    }
+
+    function sfxClimbLadder() {
+      const notes = [392, 493.88, 587.33, 659.25, 783.99, 1046.5];
+      notes.forEach((n, idx) => {
+        setTimeout(() => playTone(n, "triangle", 0.16, 0.15), idx * 75);
+      });
+    }
+
+    function sfxSlideSnake() {
+      const notes = [659.25, 587.33, 493.88, 392, 329.63, 261.63];
+      notes.forEach((n, idx) => {
+        setTimeout(() => playTone(n, "sawtooth", 0.16, 0.11), idx * 75);
+      });
+    }
+
+    function sfxCorrectAnswer() {
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((n, idx) => {
+        setTimeout(() => playTone(n, "triangle", 0.22, 0.18), idx * 90);
+      });
+    }
+
+    function sfxWrongAnswer() {
+      playTone(220, "sawtooth", 0.25, 0.15, 165);
+      setTimeout(() => playTone(165, "sawtooth", 0.35, 0.15, 125), 220);
+    }
+
+    function sfxTimerTick() {
+      playTone(880, "sine", 0.04, 0.06);
+    }
+
+    function sfxVictory() {
+      const melody = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+      melody.forEach((n, i) => {
+        setTimeout(() => playTone(n, "triangle", 0.25, 0.2), i * 140);
+      });
+    }
+
+    function startAmbientBGM() {
+      stopAmbientBGM();
+      if (!soundEnabled) return;
+      const spaceChords = [261.63, 329.63, 392.00, 493.88, 523.25, 392.00, 329.63, 293.66];
+      bgmInterval = setInterval(() => {
+        if (!soundEnabled) return;
+        const note = spaceChords[bgmStep % spaceChords.length];
+        playTone(note, "sine", 0.65, 0.025);
+        bgmStep++;
+      }, 950);
+    }
+
+    function stopAmbientBGM() {
+      if (bgmInterval) {
+        clearInterval(bgmInterval);
+        bgmInterval = null;
+      }
+    }
+
+    function toggleMusic() {
+      soundEnabled = !soundEnabled;
+      document.getElementById("musicIcon").textContent = soundEnabled ? "🔊" : "🔇";
+      document.getElementById("musicLabel").textContent = soundEnabled ? "Musik" : "Mati";
+      if (soundEnabled) {
+        ensureAudioCtx();
+        startAmbientBGM();
+      } else {
+        stopAmbientBGM();
+      }
+    }
+
+    /************************************************************************
+     * 6. KOORDINAT PAPAN 100 KOTAK (BOUSTROPHEDON ZIG-ZAG)
+     ************************************************************************/
+    // Mengembalikan { rowFromTop (0..9), colFromLeft (0..9), xPct (0..100), yPct (0..100) }
+    function getTileCoordinates(tileNum) {
+      const zeroBased = tileNum - 1;
+      const rowFromBottom = Math.floor(zeroBased / 10); // 0..9
+      const rowFromTop = 9 - rowFromBottom;            // 9..0
+      const posInRow = zeroBased % 10;
+      const colFromLeft = (rowFromBottom % 2 === 0) ? posInRow : (9 - posInRow);
+
+      const xPct = colFromLeft * 10 + 5;
+      const yPct = rowFromTop * 10 + 5;
+      return { rowFromBottom, rowFromTop, colFromLeft, xPct, yPct };
+    }
+
+    /************************************************************************
+     * 7. DISTRIBUSI MERATA KOTAK SOAL ("?") DI SELURUH BARIS PAPAN
+     ************************************************************************/
+    function generateQuestionTiles(count) {
+      questionTilesSet.clear();
+      const ladderStartSet = new Set(LADDERS.map(l => l.from));
+      const snakeStartSet = new Set(SNAKES.map(s => s.from));
+
+      // Kita prioritaskan kotak yang BUKAN titik awal tangga/ular dan bukan 1 atau 100,
+      // dibagi merata di setiap baris (10 baris)
+      const cleanPerRow = Array.from({ length: 10 }, () => []);
+      const fallbackPool = [];
+
+      for (let t = 2; t <= 99; t++) {
+        const r = Math.floor((t - 1) / 10);
+        if (!ladderStartSet.has(t) && !snakeStartSet.has(t)) {
+          cleanPerRow[r].push(t);
+        } else {
+          fallbackPool.push(t);
+        }
+      }
+
+      // Acak setiap baris
+      cleanPerRow.forEach(arr => arr.sort(() => Math.random() - 0.5));
+
+      const basePerRow = Math.floor(count / 10);
+      let remainder = count % 10;
+
+      const leftoverClean = [];
+      for (let r = 0; r < 10; r++) {
+        const take = Math.min(cleanPerRow[r].length, basePerRow + (remainder > 0 ? 1 : 0));
+        if (remainder > 0) remainder--;
+        for (let i = 0; i < take; i++) {
+          questionTilesSet.add(cleanPerRow[r][i]);
+        }
+        for (let i = take; i < cleanPerRow[r].length; i++) {
+          leftoverClean.push(cleanPerRow[r][i]);
+        }
+      }
+
+      leftoverClean.sort(() => Math.random() - 0.5);
+      while (questionTilesSet.size < count && leftoverClean.length > 0) {
+        questionTilesSet.add(leftoverClean.pop());
+      }
+      while (questionTilesSet.size < count && fallbackPool.length > 0) {
+        questionTilesSet.add(fallbackPool.pop());
+      }
+    }
+
+    /************************************************************************
+     * 8. RENDER PAPAN 100 KOTAK, OVERLAY SVG TANGGA & KOMET, DAN PION
+     ************************************************************************/
+    function renderBoardGrid() {
+      const gridEl = document.getElementById("boardGrid");
+      gridEl.innerHTML = "";
+
+      const ladderStartMap = new Map(LADDERS.map(l => [l.from, l.to]));
+      const snakeStartMap = new Map(SNAKES.map(s => [s.from, s.to]));
+
+      // Palet warna 2D flat-color bertema langit malam
+      const paletteEven = [
+        "bg-[#172154]/95",
+        "bg-[#1E296B]/95",
+        "bg-[#1A245E]/95",
+        "bg-[#232E7A]/95"
+      ];
+      const paletteOdd = [
+        "bg-[#111842]/95",
+        "bg-[#141D4F]/95",
+        "bg-[#0F163B]/95",
+        "bg-[#182259]/95"
+      ];
+
+      for (let rTop = 0; rTop < 10; rTop++) {
+        const rBottom = 9 - rTop;
+        for (let cLeft = 0; cLeft < 10; cLeft++) {
+          const posInRow = (rBottom % 2 === 0) ? cLeft : (9 - cLeft);
+          const tileNum = rBottom * 10 + posInRow + 1;
+
+          const isQuestion = questionTilesSet.has(tileNum);
+          const ladderDest = ladderStartMap.get(tileNum);
+          const snakeDest = snakeStartMap.get(tileNum);
+
+          const tileEl = document.createElement("div");
+          tileEl.id = `tile-${tileNum}`;
+          const bgClass = ((rTop + cLeft) % 2 === 0)
+            ? paletteEven[(tileNum) % paletteEven.length]
+            : paletteOdd[(tileNum) % paletteOdd.length];
+
+          tileEl.className = `board-tile ${bgClass} ${isQuestion ? "tile-question" : ""}`;
+
+          // Special styling for Tile 1 and Tile 100
+          if (tileNum === 1) {
+            tileEl.className = "board-tile bg-gradient-to-br from-emerald-600 to-teal-800 ring-2 ring-emerald-300";
+          } else if (tileNum === 100) {
+            tileEl.className = "board-tile bg-gradient-to-br from-amber-400 via-orange-500 to-pink-600 ring-2 ring-yellow-200";
+          }
+
+          // Top row inside tile: Number + subtle badge
+          let badgeHTML = "";
+          if (tileNum === 1) {
+            badgeHTML = `<span class="text-[9px] font-extrabold px-1 rounded bg-emerald-300 text-slate-950">START</span>`;
+          } else if (tileNum === 100) {
+            badgeHTML = `<span class="text-[9px] font-extrabold px-1 rounded bg-slate-950 text-amber-300">FINISH</span>`;
+          } else if (ladderDest) {
+            badgeHTML = `<span class="text-[9px] font-extrabold px-1 rounded bg-cyan-400/25 text-cyan-200">▲${ladderDest}</span>`;
+          } else if (snakeDest) {
+            badgeHTML = `<span class="text-[9px] font-extrabold px-1 rounded bg-pink-400/25 text-pink-200">▼${snakeDest}</span>`;
+          }
+
+          // Center/Bottom visual inside tile
+          let centerHTML = "";
+          if (tileNum === 100) {
+            centerHTML = `<div class="text-center text-base xl:text-lg leading-none my-auto">🏆</div>`;
+          } else if (tileNum === 1) {
+            centerHTML = `<div class="text-center text-sm xl:text-base leading-none my-auto">🌍</div>`;
+          } else if (isQuestion) {
+            centerHTML = `
+              <div class="my-auto mx-auto w-5 h-5 xl:w-6 xl:h-6 rounded-full bg-amber-400/95 text-slate-950 font-display font-bold text-xs xl:text-sm flex items-center justify-center shadow">
+                ?
+              </div>
+            `;
+          }
+
+          tileEl.innerHTML = `
+            <div class="flex items-center justify-between w-full leading-none z-10">
+              <span class="font-display font-bold text-[10px] xl:text-xs ${tileNum === 100 ? 'text-slate-950 font-extrabold' : 'text-indigo-100/90'}">${tileNum}</span>
+              ${badgeHTML}
+            </div>
+            ${centerHTML}
+          `;
+
+          gridEl.appendChild(tileEl);
+        }
+      }
+    }
+
+    // Gambar 10 Jembatan Cahaya Kosmik (Tangga Naik) & 10 Ekor Komet (Ular Turun) dengan gaya 2D flat lineless
+    function renderSnakesAndLaddersSVG() {
+      const svg = document.getElementById("boardSvgOverlay");
+      let html = `
+        <defs>
+          <linearGradient id="ladderRailGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#06B6D4"/>
+            <stop offset="50%" stop-color="#38BDF8"/>
+            <stop offset="100%" stop-color="#A5F3FC"/>
+          </linearGradient>
+          <linearGradient id="snakeBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F43F5E"/>
+            <stop offset="55%" stop-color="#EC4899"/>
+            <stop offset="100%" stop-color="#FBBF24"/>
+          </linearGradient>
+        </defs>
+      `;
+
+      // 1) Draw 10 Cosmic Ladders (Jembatan Cahaya / Peluncur Roket)
+      LADDERS.forEach((lad) => {
+        const start = getTileCoordinates(lad.from);
+        const end = getTileCoordinates(lad.to);
+        const x1 = start.xPct * 10;
+        const y1 = start.yPct * 10;
+        const x2 = end.xPct * 10;
+        const y2 = end.yPct * 10;
+
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        const nx = (-dy / len) * 11; // half width of ladder
+        const ny = (dx / len) * 11;
+
+        // Glow corridor
+        html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#22D3EE" stroke-width="20" stroke-linecap="round" opacity="0.16" />`;
+
+        // Rungs along the ladder
+        const steps = Math.max(5, Math.floor(len / 28));
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          const cx = x1 + dx * t;
+          const cy = y1 + dy * t;
+          html += `<line x1="${cx - nx}" y1="${cy - ny}" x2="${cx + nx}" y2="${cy + ny}" stroke="#FEF08A" stroke-width="4.5" stroke-linecap="round" opacity="0.9" />`;
+        }
+
+        // Two side laser rails (2D flat vector, no black outline)
+        html += `<line x1="${x1 - nx}" y1="${y1 - ny}" x2="${x2 - nx}" y2="${y2 - ny}" stroke="url(#ladderRailGrad)" stroke-width="5.5" stroke-linecap="round" />`;
+        html += `<line x1="${x1 + nx}" y1="${y1 + ny}" x2="${x2 + nx}" y2="${y2 + ny}" stroke="url(#ladderRailGrad)" stroke-width="5.5" stroke-linecap="round" />`;
+
+        // Base launchpad star & top destination portal
+        html += `<circle cx="${x1}" cy="${y1}" r="11" fill="#22D3EE" opacity="0.85" />`;
+        html += `<circle cx="${x2}" cy="${y2}" r="13" fill="#FEF08A" opacity="0.9" />`;
+        html += `<circle cx="${x2}" cy="${y2}" r="6" fill="#06B6D4" />`;
+      });
+
+      // 2) Draw 10 Comet Trails / Cosmic Snakes (Ekor Komet Melengkung)
+      SNAKES.forEach((snk, idx) => {
+        const start = getTileCoordinates(snk.from); // Top (Comet Danger Entry)
+        const end = getTileCoordinates(snk.to);     // Bottom (Comet Core Landing)
+        const x1 = start.xPct * 10;
+        const y1 = start.yPct * 10;
+        const x2 = end.xPct * 10;
+        const y2 = end.yPct * 10;
+
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        const perpX = -dy / len;
+        const perpY = dx / len;
+        const waveAmp = (idx % 2 === 0 ? 1 : -1) * 32;
+
+        const c1x = x1 + dx * 0.33 + perpX * waveAmp;
+        const c1y = y1 + dy * 0.33 + perpY * waveAmp;
+        const c2x = x1 + dx * 0.66 - perpX * waveAmp;
+        const c2y = y1 + dy * 0.66 - perpY * waveAmp;
+
+        const pathD = `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
+
+        // Outer soft glow
+        html += `<path d="${pathD}" fill="none" stroke="#F43F5E" stroke-width="20" stroke-linecap="round" opacity="0.18" />`;
+        // Main wavy comet-snake body
+        html += `<path d="${pathD}" fill="none" stroke="url(#snakeBodyGrad)" stroke-width="11" stroke-linecap="round" opacity="0.9" />`;
+        // Dotted cosmic spots along body
+        html += `<path d="${pathD}" fill="none" stroke="#FFF1F2" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 18" opacity="0.85" />`;
+
+        // Top Vortex / Entry Head (at 'from' tile)
+        html += `
+          <g transform="translate(${x1}, ${y1})">
+            <circle cx="0" cy="0" r="15" fill="#E11D48" />
+            <circle cx="0" cy="0" r="9" fill="#4C0519" />
+            <circle cx="-4" cy="-3" r="2.5" fill="#FDE047" />
+            <circle cx="4" cy="-3" r="2.5" fill="#FDE047" />
+          </g>
+        `;
+
+        // Bottom Tail Tip (at 'to' tile)
+        html += `<circle cx="${x2}" cy="${y2}" r="9" fill="#FBBF24" />`;
+      });
+
+      svg.innerHTML = html;
+    }
+
+    // Buat SVG Pion Roket 2D Flat-Color tanpa outline hitam
+    function getPawnSVG(team) {
+      return `
+        <svg viewBox="0 0 64 64" class="w-full h-full">
+          <circle cx="32" cy="32" r="28" fill="${team.darkHex}" opacity="0.9"/>
+          <circle cx="32" cy="32" r="23" fill="${team.colorHex}"/>
+          <!-- Flat Rocket Silhouette inside token -->
+          <path d="M32,12 C40,20 42,32 42,42 L22,42 C22,32 24,20 32,12 Z" fill="#FFFFFF"/>
+          <polygon points="22,34 14,45 22,42" fill="#FDE047"/>
+          <polygon points="42,34 50,45 42,42" fill="#FDE047"/>
+          <circle cx="32" cy="28" r="5" fill="${team.darkHex}"/>
+          <polygon points="27,42 32,53 37,42" fill="#F97316"/>
+        </svg>
+      `;
+    }
+
+    function renderPawnsLayer() {
+      const layer = document.getElementById("pawnsLayer");
+      layer.innerHTML = "";
+      TEAMS.forEach((team) => {
+        const pawn = document.createElement("div");
+        pawn.id = `pawn-${team.id}`;
+        pawn.className = `pawn-token ${currentTurn === team.id ? "active-turn" : ""}`;
+        pawn.innerHTML = getPawnSVG(team);
+        layer.appendChild(pawn);
+      });
+      updateAllPawnPositions();
+    }
+
+    function updateAllPawnPositions() {
+      players.forEach((p) => {
+        const team = TEAMS[p.id];
+        const coords = getTileCoordinates(p.pos);
+        const pawnEl = document.getElementById(`pawn-${p.id}`);
+        if (!pawnEl) return;
+
+        // Tambahkan sedikit offset agar 4 pion di kotak yang sama tetap terlihat rapi
+        pawnEl.style.left = `${coords.xPct + team.offset.x}%`;
+        pawnEl.style.top = `${coords.yPct + team.offset.y}%`;
+
+        if (currentTurn === p.id) {
+          pawnEl.classList.add("active-turn");
+        } else {
+          pawnEl.classList.remove("active-turn");
+        }
+      });
+    }
+
+    /************************************************************************
+     * 9. RENDER PAPAN SKOR 4 PEMAIN, INDIKATOR GILIRAN & VISUAL 2 DADU
+     ************************************************************************/
+    function renderScoreboard() {
+      const grid = document.getElementById("scoreboardGrid");
+      grid.innerHTML = "";
+
+      players.forEach((p) => {
+        const team = TEAMS[p.id];
+        const isTurn = currentTurn === p.id;
+        const card = document.createElement("div");
+        card.className = `bg-gradient-to-br ${team.cardBg} border-2 ${isTurn ? "border-white ring-2 ring-amber-300/60" : team.cardBorder} rounded-2xl p-2.5 flex items-center justify-between gap-2 transition-all`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-9 h-9 flex-shrink-0">
+              ${getPawnSVG(team)}
+            </div>
+            <div class="leading-tight truncate">
+              <div class="flex items-center gap-1">
+                <span class="font-display font-bold text-xs text-white truncate">${team.name}</span>
+                ${isTurn ? `<span class="w-2 h-2 rounded-full bg-amber-300 animate-ping"></span>` : ""}
+              </div>
+              <div class="text-[11px] font-extrabold text-indigo-200">
+                Kotak <span class="text-amber-300">${p.pos}</span>/100
+              </div>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0 bg-slate-950/70 px-2.5 py-1 rounded-xl border border-white/10">
+            <div class="font-display font-bold text-sm xl:text-base ${p.score >= 0 ? "text-emerald-300" : "text-rose-400"}">
+              ${p.score}
+            </div>
+            <div class="text-[9px] uppercase font-extrabold text-slate-400">Poin</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function updateTurnIndicators() {
+      const team = TEAMS[currentTurn];
+      const badge = document.getElementById("activeTurnBadge");
+      badge.className = `flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-extrabold text-xs shadow ${team.badgeClass}`;
+      document.getElementById("activeTurnName").textContent = team.name;
+
+      // Update 4 pills order
+      const pillStyles = [
+        { active: "bg-sky-400 text-slate-950 ring-2 ring-white", idle: "bg-sky-500/25 text-sky-200" },
+        { active: "bg-rose-500 text-white ring-2 ring-white", idle: "bg-rose-500/25 text-rose-200" },
+        { active: "bg-emerald-400 text-slate-950 ring-2 ring-white", idle: "bg-emerald-500/25 text-emerald-200" },
+        { active: "bg-amber-400 text-slate-950 ring-2 ring-white", idle: "bg-amber-400/25 text-amber-200" }
+      ];
+      for (let i = 0; i < 4; i++) {
+        const pill = document.getElementById(`orderPill${i}`);
+        pill.className = `px-2 py-0.5 rounded-md transition ${currentTurn === i ? pillStyles[i].active : pillStyles[i].idle}`;
+      }
+
+      // Update Roll Button text
+      const btnLabel = document.getElementById("btnRollDiceLabel");
+      btnLabel.textContent = `KOCOK 2 DADU (${team.name})`;
+
+      renderScoreboard();
+      updateAllPawnPositions();
+    }
+
+    function setLiveCommentary(msg) {
+      document.getElementById("liveStatusText").textContent = msg;
+    }
+
+    function drawDieFace(svgId, value) {
+      const svg = document.getElementById(svgId);
+      const pipCoords = {
+        1: [[50, 50]],
+        2: [[28, 28], [72, 72]],
+        3: [[25, 25], [50, 50], [75, 75]],
+        4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+        5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
+        6: [[28, 24], [72, 24], [28, 50], [72, 50], [28, 76], [72, 76]]
+      };
+      const dots = pipCoords[value] || pipCoords[1];
+      const dotColor = value === 1 || value === 4 ? "#E11D48" : "#1E1B4B";
+      svg.innerHTML = dots.map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" r="10.5" fill="${dotColor}" />`).join("");
+    }
+
+    /************************************************************************
+     * 10. MEKANISME KOCOK 2 DADU -> JEDA 1,5 DETIK -> LOMPAT KOTAK DEMI KOTAK
+     ************************************************************************/
+    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+    async function handleRollDice() {
+      if (isBusy) return;
+      ensureAudioCtx();
+      isBusy = true;
+
+      const btn = document.getElementById("btnRollDice");
+      const dieBox1 = document.getElementById("dieBox1");
+      const dieBox2 = document.getElementById("dieBox2");
+      const banner = document.getElementById("diceAnnouncementBanner");
+      const formula = document.getElementById("diceFormulaText");
+      const team = TEAMS[currentTurn];
+
+      btn.disabled = true;
+      btn.classList.add("opacity-60", "cursor-not-allowed");
+
+      // 1) Animasi Kocok 2 Dadu (~600ms)
+      dieBox1.classList.add("dice-shaking");
+      dieBox2.classList.add("dice-shaking");
+      banner.className = "w-full py-1.5 px-3 rounded-xl bg-indigo-900/90 border border-indigo-400/50 text-center text-xs xl:text-sm font-extrabold text-indigo-100 truncate";
+      banner.textContent = `🎲 Mengocok 2 dadu untuk ${team.name}...`;
+      setLiveCommentary(`🎲 ${team.name} sedang mengocok 2 dadu...`);
+
+      for (let i = 0; i < 8; i++) {
+        drawDieFace("dieSvg1", Math.floor(Math.random() * 6) + 1);
+        drawDieFace("dieSvg2", Math.floor(Math.random() * 6) + 1);
+        sfxDiceShake();
+        await sleep(70);
+      }
+
+      dieBox1.classList.remove("dice-shaking");
+      dieBox2.classList.remove("dice-shaking");
+
+      // Hasil akhir 2 dadu
+      const d1 = Math.floor(Math.random() * 6) + 1;
+      const d2 = Math.floor(Math.random() * 6) + 1;
+      const totalSteps = d1 + d2;
+
+      drawDieFace("dieSvg1", d1);
+      drawDieFace("dieSvg2", d2);
+      sfxDiceReveal();
+
+      // 2) WAJIB JEDA 1,5 DETIK (1500 ms) DENGAN HIGHLIGHT PENGUMUMAN
+      formula.textContent = `${d1} + ${d2} = ${totalSteps}`;
+      banner.className = "w-full py-1.5 px-3 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-xs xl:text-sm text-center announce-highlight truncate";
+      banner.textContent = `✨ DADU KELUAR: ${d1} + ${d2} = MAJU ${totalSteps} LANGKAH!`;
+      setLiveCommentary(`✨ Hasil dadu ${team.name}: ${d1} + ${d2} = ${totalSteps}. Bersiap melompat...`);
+
+      await sleep(1500);
+
+      // Matikan highlight setelah 1,5 detik selesai
+      banner.className = "w-full py-1.5 px-3 rounded-xl bg-slate-800/90 border border-amber-400/40 text-center text-xs xl:text-sm font-extrabold text-amber-300 truncate";
+      banner.textContent = `🚀 ${team.name} melompat ${totalSteps} kotak...`;
+
+      // 3) Gerakkan pion melompat kotak demi kotak
+      const player = players[currentTurn];
+      const pawnEl = document.getElementById(`pawn-${player.id}`);
+
+      for (let step = 1; step <= totalSteps; step++) {
+        if (player.pos < 100) {
+          player.pos++;
+        }
+        pawnEl.classList.add("hopping");
+        updateAllPawnPositions();
+        renderScoreboard();
+        sfxPawnHop(step);
+
+        // Highlight tile yang diinjak
+        const tileEl = document.getElementById(`tile-${player.pos}`);
+        if (tileEl) {
+          tileEl.classList.remove("tile-active-hop");
+          void tileEl.offsetWidth;
+          tileEl.classList.add("tile-active-hop");
+        }
+
+        setLiveCommentary(`🚀 ${team.name} melompat ke Kotak ${player.pos} (${step}/${totalSteps})...`);
+        await sleep(230);
+        pawnEl.classList.remove("hopping");
+        await sleep(50);
+
+        if (player.pos === 100) break;
+      }
+
+      // 4) Cek apakah mendarat di Tangga (Naik) atau Ular/Komet (Turun)
+      const ladderHit = LADDERS.find(l => l.from === player.pos);
+      const snakeHit = SNAKES.find(s => s.from === player.pos);
+
+      if (ladderHit) {
+        setLiveCommentary(`🌟 Luar biasa! ${team.name} menemukan Jembatan Cahaya di Kotak ${ladderHit.from} ➔ Naik ke Kotak ${ladderHit.to}!`);
+        banner.textContent = `🚀 NAIK TANGGA CAHAYA: Kotak ${ladderHit.from} ➔ ${ladderHit.to}!`;
+        sfxClimbLadder();
+        await sleep(550);
+        player.pos = ladderHit.to;
+        updateAllPawnPositions();
+        renderScoreboard();
+        await sleep(600);
+      } else if (snakeHit) {
+        setLiveCommentary(`☄️ Awas! ${team.name} terkena Ekor Komet di Kotak ${snakeHit.from} ➔ Meluncur turun ke Kotak ${snakeHit.to}!`);
+        banner.textContent = `☄️ TURUN EKOR KOMET: Kotak ${snakeHit.from} ➔ ${snakeHit.to}!`;
+        sfxSlideSnake();
+        await sleep(550);
+        player.pos = snakeHit.to;
+        updateAllPawnPositions();
+        renderScoreboard();
+        await sleep(600);
+      }
+
+      // 5) Cek apakah mencapai Kotak 100 (Menang)
+      if (player.pos >= 100) {
+        player.pos = 100;
+        updateAllPawnPositions();
+        renderScoreboard();
+        showVictoryModal(team);
+        return;
+      }
+
+      // 6) Cek apakah kotak tujuan akhir adalah Kotak Soal "?" (termasuk setelah naik tangga / turun ular)
+      if (questionTilesSet.has(player.pos)) {
+        setLiveCommentary(`❓ ${team.name} berhenti di Kotak Soal ${player.pos}! Bersiap menjawab kuis...`);
+        banner.textContent = `❓ KOTAK SOAL ${player.pos}! Jawab kuis dalam ${gameConfig.timerSeconds} detik!`;
+        await sleep(450);
+        openQuizForCurrentPlayer();
+      } else {
+        await sleep(300);
+        advanceToNextTurn();
+      }
+    }
+
+    function advanceToNextTurn() {
+      currentTurn = (currentTurn + 1) % 4;
+      updateTurnIndicators();
+      const nextTeam = TEAMS[currentTurn];
+      setLiveCommentary(`🌌 Sekarang giliran ${nextTeam.name}! Silakan klik tombol Kocok 2 Dadu.`);
+
+      const btn = document.getElementById("btnRollDice");
+      btn.disabled = false;
+      btn.classList.remove("opacity-60", "cursor-not-allowed");
+      isBusy = false;
+    }
+
+    /************************************************************************
+     * 11. SISTEM KUIS PILIHAN GANDA (GRID 2x2) & TIMER 25 DETIK
+     ************************************************************************/
+    function pickRandomQuestion() {
+      if (questionsBank.length === 0) {
+        questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      }
+      if (usedQuestionIndices.size >= questionsBank.length) {
+        usedQuestionIndices.clear();
+      }
+      const available = [];
+      for (let i = 0; i < questionsBank.length; i++) {
+        if (!usedQuestionIndices.has(i)) available.push(i);
+      }
+      const chosenIdx = available[Math.floor(Math.random() * available.length)];
+      usedQuestionIndices.add(chosenIdx);
+      return questionsBank[chosenIdx];
+    }
+
+    function openQuizForCurrentPlayer() {
+      const player = players[currentTurn];
+      const team = TEAMS[currentTurn];
+      currentQuizQuestion = pickRandomQuestion();
+
+      const modal = document.getElementById("quizModal");
+      const badge = document.getElementById("quizTeamBadge");
+      const qText = document.getElementById("quizQuestionText");
+      const optGrid = document.getElementById("quizOptionsGrid");
+      const feedbackBox = document.getElementById("quizFeedbackBox");
+
+      badge.className = `px-3.5 py-1.5 rounded-xl font-display font-bold text-sm ${team.badgeClass}`;
+      badge.textContent = `${team.name} • KOTAK ${player.pos}`;
+      qText.textContent = currentQuizQuestion.q;
+
+      feedbackBox.classList.add("hidden");
+      optGrid.innerHTML = "";
+
+      const letters = ["A", "B", "C", "D"];
+      currentQuizQuestion.options.forEach((optText, idx) => {
+        const btn = document.createElement("button");
+        btn.id = `quizOptBtn-${idx}`;
+        btn.onclick = () => submitQuizAnswer(idx);
+        btn.className = "w-full text-left p-4 rounded-2xl bg-slate-800/90 hover:bg-indigo-600/80 border-2 border-indigo-400/35 hover:border-amber-300 transition flex items-center gap-3.5 group cursor-pointer shadow";
+        btn.innerHTML = `
+          <span class="w-9 h-9 rounded-xl bg-indigo-500/30 group-hover:bg-amber-400 group-hover:text-slate-950 font-display font-bold text-base text-amber-300 flex items-center justify-center flex-shrink-0 transition">
+            ${letters[idx]}
+          </span>
+          <span class="text-sm sm:text-base font-bold text-slate-100 leading-snug">${optText}</span>
+        `;
+        optGrid.appendChild(btn);
+      });
+
+      // Reset & jalankan Timer
+      currentQuizTimeLeft = gameConfig.timerSeconds;
+      updateQuizTimerUI();
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+
+      if (activeQuizTimer) clearInterval(activeQuizTimer);
+      activeQuizTimer = setInterval(() => {
+        currentQuizTimeLeft--;
+        if (currentQuizTimeLeft <= 5 && currentQuizTimeLeft > 0) {
+          sfxTimerTick();
+        }
+        updateQuizTimerUI();
+        if (currentQuizTimeLeft <= 0) {
+          clearInterval(activeQuizTimer);
+          activeQuizTimer = null;
+          submitQuizAnswer(-1); // Waktu habis = dianggap salah
+        }
+      }, 1000);
+    }
+
+    function updateQuizTimerUI() {
+      const timerText = document.getElementById("quizTimerText");
+      const timerBar = document.getElementById("quizTimerBar");
+      timerText.textContent = `${currentQuizTimeLeft}s`;
+      const pct = Math.max(0, (currentQuizTimeLeft / gameConfig.timerSeconds) * 100);
+      timerBar.style.width = `${pct}%`;
+
+      if (currentQuizTimeLeft <= 5) {
+        timerText.className = "font-display text-xl font-bold text-rose-400 animate-pulse";
+      } else {
+        timerText.className = "font-display text-xl font-bold text-amber-300";
+      }
+    }
+
+    function submitQuizAnswer(selectedIndex) {
+      if (activeQuizTimer) {
+        clearInterval(activeQuizTimer);
+        activeQuizTimer = null;
+      }
+
+      const correctIndex = currentQuizQuestion.ans;
+      const isCorrect = selectedIndex === correctIndex;
+      const player = players[currentTurn];
+      const team = TEAMS[currentTurn];
+      const letters = ["A", "B", "C", "D"];
+
+      // Disable semua tombol opsi dan beri warna indikator
+      for (let i = 0; i < 4; i++) {
+        const b = document.getElementById(`quizOptBtn-${i}`);
+        if (!b) continue;
+        b.onclick = null;
+        b.classList.remove("hover:bg-indigo-600/80", "hover:border-amber-300", "cursor-pointer");
+        if (i === correctIndex) {
+          b.className = "w-full text-left p-4 rounded-2xl bg-emerald-600/40 border-2 border-emerald-400 flex items-center gap-3.5 shadow";
+        } else if (i === selectedIndex && !isCorrect) {
+          b.className = "w-full text-left p-4 rounded-2xl bg-rose-600/40 border-2 border-rose-400 flex items-center gap-3.5 opacity-90";
+        } else {
+          b.classList.add("opacity-50");
+        }
+      }
+
+      const feedbackBox = document.getElementById("quizFeedbackBox");
+      const feedbackText = document.getElementById("quizFeedbackText");
+      feedbackBox.classList.remove("hidden");
+
+      const explanation = currentQuizQuestion.info
+        ? `<div class="text-xs text-slate-200 font-semibold mt-1">${currentQuizQuestion.info}</div>`
+        : "";
+
+      if (isCorrect) {
+        player.score += gameConfig.pointCorrect;
+        sfxCorrectAnswer();
+        feedbackBox.className = "rounded-2xl p-4 border-2 border-emerald-400 bg-emerald-950/90 text-emerald-200 flex items-center justify-between gap-4";
+        feedbackText.innerHTML = `
+          <div class="font-display text-base font-bold text-emerald-300">
+            ✅ JAWABAN BENAR! (${team.name} mendapat +${gameConfig.pointCorrect} Poin)
+          </div>
+          ${explanation}
+        `;
+        setLiveCommentary(`✅ Hebat! ${team.name} menjawab benar (+${gameConfig.pointCorrect} Poin).`);
+      } else {
+        player.score += gameConfig.pointWrong;
+        sfxWrongAnswer();
+        const reason = selectedIndex === -1 ? "⏰ WAKTU HABIS!" : "❌ JAWABAN KURANG TEPAT!";
+        feedbackBox.className = "rounded-2xl p-4 border-2 border-rose-400 bg-rose-950/90 text-rose-200 flex items-center justify-between gap-4";
+        feedbackText.innerHTML = `
+          <div class="font-display text-base font-bold text-rose-300">
+            ${reason} (${team.name} ${gameConfig.pointWrong} Poin) • Kunci: ${letters[correctIndex]}. ${currentQuizQuestion.options[correctIndex]}
+          </div>
+          ${explanation}
+        `;
+        setLiveCommentary(`${reason} ${team.name} mendapat ${gameConfig.pointWrong} Poin.`);
+      }
+
+      renderScoreboard();
+    }
+
+    function closeQuizAndContinue() {
+      const modal = document.getElementById("quizModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      advanceToNextTurn();
+    }
+
+    /************************************************************************
+     * 12. MODAL PENGATURAN & EDITOR SOAL (LOCALSTORAGE)
+     ************************************************************************/
+    function loadSettingsAndQuestions() {
+      try {
+        const savedCfg = localStorage.getItem(STORAGE_KEY_SETTINGS);
+        if (savedCfg) {
+          const parsed = JSON.parse(savedCfg);
+          gameConfig.questionTileCount = Math.min(65, Math.max(5, Number(parsed.questionTileCount) || 40));
+          gameConfig.timerSeconds = Math.min(120, Math.max(5, Number(parsed.timerSeconds) || 25));
+          gameConfig.pointCorrect = Number(parsed.pointCorrect) || 5;
+          gameConfig.pointWrong = Number(parsed.pointWrong) || -2;
+        }
+      } catch (e) {}
+
+      try {
+        const savedQ = localStorage.getItem(STORAGE_KEY_QUESTIONS);
+        if (savedQ) {
+          const parsedQ = JSON.parse(savedQ);
+          if (Array.isArray(parsedQ) && parsedQ.length > 0) {
+            questionsBank = parsedQ;
+          } else {
+            questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+          }
+        } else {
+          questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+        }
+      } catch (e) {
+        questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      }
+      updateSummaryBadges();
+    }
+
+    function saveSettingsAndQuestionsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(gameConfig));
+        localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(questionsBank));
+      } catch (e) {}
+      updateSummaryBadges();
+    }
+
+    function updateSummaryBadges() {
+      document.getElementById("footerQuestionCount").textContent = `${gameConfig.questionTileCount} Kotak Soal`;
+      document.getElementById("footerPointInfo").textContent = `+${gameConfig.pointCorrect} / ${gameConfig.pointWrong} Poin`;
+      document.getElementById("startCardQuestionTitle").textContent = `${gameConfig.questionTileCount} Kotak Soal & Timer`;
+      document.getElementById("startCardQuestionDesc").innerHTML = `
+        Berhenti di kotak bertanda <strong>"?"</strong> memunculkan kuis Benda Luar Angkasa (durasi <strong>${gameConfig.timerSeconds} detik</strong>). Benar <strong>+${gameConfig.pointCorrect} poin</strong>, salah/habis waktu <strong>${gameConfig.pointWrong} poin</strong>!
+      `;
+    }
+
+    function openEditorModal() {
+      document.getElementById("inputQuestionCount").value = gameConfig.questionTileCount;
+      document.getElementById("inputTimerSeconds").value = gameConfig.timerSeconds;
+      document.getElementById("inputPointCorrect").value = gameConfig.pointCorrect;
+      document.getElementById("inputPointWrong").value = gameConfig.pointWrong;
+      resetQuestionForm();
+      renderEditorQuestionsList();
+
+      const modal = document.getElementById("editorModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeEditorModal() {
+      const modal = document.getElementById("editorModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function renderEditorQuestionsList() {
+      const listEl = document.getElementById("editorQuestionsList");
+      const badgeEl = document.getElementById("editorQuestionTotalBadge");
+      badgeEl.textContent = `Total: ${questionsBank.length} Soal`;
+      listEl.innerHTML = "";
+
+      const letters = ["A", "B", "C", "D"];
+      questionsBank.forEach((item, idx) => {
+        const row = document.createElement("div");
+        row.className = "bg-slate-900 border border-indigo-400/20 rounded-xl p-2.5 flex items-start justify-between gap-3 text-xs";
+        row.innerHTML = `
+          <div class="space-y-1 flex-1">
+            <div class="font-bold text-white"><span class="text-amber-300">#${idx + 1}.</span> ${item.q}</div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 text-[11px] text-slate-300">
+              ${item.options.map((op, oIdx) => `
+                <span class="${oIdx === item.ans ? 'text-emerald-300 font-extrabold' : ''}">
+                  ${letters[oIdx]}. ${op} ${oIdx === item.ans ? '✓' : ''}
+                </span>
+              `).join("")}
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button onclick="editQuestionByIndex(${idx})" class="px-2.5 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold cursor-pointer">Edit</button>
+            <button onclick="deleteQuestionByIndex(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white font-bold cursor-pointer">Hapus</button>
+          </div>
+        `;
+        listEl.appendChild(row);
+      });
+    }
+
+    function resetQuestionForm() {
+      document.getElementById("editQuestionIndex").value = "-1";
+      document.getElementById("formQuestionTitle").textContent = "➕ Tambah Soal Baru ke Bank Soal";
+      document.getElementById("inputQText").value = "";
+      document.getElementById("inputQOptA").value = "";
+      document.getElementById("inputQOptB").value = "";
+      document.getElementById("inputQOptC").value = "";
+      document.getElementById("inputQOptD").value = "";
+      document.getElementById("inputQKey").value = "0";
+    }
+
+    function editQuestionByIndex(idx) {
+      const qObj = questionsBank[idx];
+      if (!qObj) return;
+      document.getElementById("editQuestionIndex").value = String(idx);
+      document.getElementById("formQuestionTitle").textContent = `✏️ Edit Soal Nomor #${idx + 1}`;
+      document.getElementById("inputQText").value = qObj.q;
+      document.getElementById("inputQOptA").value = qObj.options[0] || "";
+      document.getElementById("inputQOptB").value = qObj.options[1] || "";
+      document.getElementById("inputQOptC").value = qObj.options[2] || "";
+      document.getElementById("inputQOptD").value = qObj.options[3] || "";
+      document.getElementById("inputQKey").value = String(qObj.ans || 0);
+    }
+
+    function deleteQuestionByIndex(idx) {
+      if (questionsBank.length <= 1) return;
+      questionsBank.splice(idx, 1);
+      saveSettingsAndQuestionsToStorage();
+      renderEditorQuestionsList();
+    }
+
+    function saveSingleQuestion() {
+      const q = document.getElementById("inputQText").value.trim();
+      const a = document.getElementById("inputQOptA").value.trim();
+      const b = document.getElementById("inputQOptB").value.trim();
+      const c = document.getElementById("inputQOptC").value.trim();
+      const d = document.getElementById("inputQOptD").value.trim();
+      const ans = parseInt(document.getElementById("inputQKey").value, 10) || 0;
+      const editIdx = parseInt(document.getElementById("editQuestionIndex").value, 10);
+
+      if (!q || !a || !b || !c || !d) return;
+
+      const newObj = { q, options: [a, b, c, d], ans, info: "" };
+      if (editIdx >= 0 && editIdx < questionsBank.length) {
+        questionsBank[editIdx] = newObj;
+      } else {
+        questionsBank.unshift(newObj);
+      }
+      saveSettingsAndQuestionsToStorage();
+      resetQuestionForm();
+      renderEditorQuestionsList();
+    }
+
+    function restoreDefaultQuestions() {
+      questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      gameConfig = { questionTileCount: 40, timerSeconds: 25, pointCorrect: 5, pointWrong: -2 };
+      document.getElementById("inputQuestionCount").value = 40;
+      document.getElementById("inputTimerSeconds").value = 25;
+      document.getElementById("inputPointCorrect").value = 5;
+      document.getElementById("inputPointWrong").value = -2;
+      saveSettingsAndQuestionsToStorage();
+      renderEditorQuestionsList();
+    }
+
+    function applySettingsAndRebuildBoard() {
+      const qCount = Math.min(65, Math.max(5, parseInt(document.getElementById("inputQuestionCount").value, 10) || 40));
+      const tSec = Math.min(120, Math.max(5, parseInt(document.getElementById("inputTimerSeconds").value, 10) || 25));
+      const pCorr = parseInt(document.getElementById("inputPointCorrect").value, 10) || 5;
+      const pWrong = parseInt(document.getElementById("inputPointWrong").value, 10) || -2;
+
+      gameConfig = {
+        questionTileCount: qCount,
+        timerSeconds: tSec,
+        pointCorrect: pCorr,
+        pointWrong: pWrong
+      };
+
+      saveSettingsAndQuestionsToStorage();
+      generateQuestionTiles(gameConfig.questionTileCount);
+      renderBoardGrid();
+      closeEditorModal();
+      setLiveCommentary(`⚙️ Pengaturan disimpan! ${gameConfig.questionTileCount} Kotak Soal (?) telah disebar merata di papan.`);
+    }
+
+    /************************************************************************
+     * 13. MODAL PETA, RESET, VICTORY & INISIALISASI AWAL
+     ************************************************************************/
+    function openMapInfoModal() {
+      const m = document.getElementById("mapInfoModal");
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+
+    function closeMapInfoModal() {
+      const m = document.getElementById("mapInfoModal");
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+    }
+
+    function openResetModal() {
+      const m = document.getElementById("resetModal");
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+
+    function closeResetModal() {
+      const m = document.getElementById("resetModal");
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+    }
+
+    function confirmResetGame() {
+      closeResetModal();
+      const vModal = document.getElementById("victoryModal");
+      vModal.classList.add("hidden");
+      vModal.classList.remove("flex");
+
+      players = [
+        { id: 0, pos: 1, score: 0 },
+        { id: 1, pos: 1, score: 0 },
+        { id: 2, pos: 1, score: 0 },
+        { id: 3, pos: 1, score: 0 }
+      ];
+      currentTurn = 0;
+      isBusy = false;
+      usedQuestionIndices.clear();
+
+      generateQuestionTiles(gameConfig.questionTileCount);
+      renderBoardGrid();
+      updateTurnIndicators();
+
+      document.getElementById("diceFormulaText").textContent = "- + - = 0";
+      document.getElementById("diceAnnouncementBanner").className = "w-full py-1.5 px-3 rounded-xl bg-slate-800/90 border border-amber-400/30 text-center text-xs xl:text-sm font-extrabold text-amber-200 truncate";
+      document.getElementById("diceAnnouncementBanner").textContent = "🎲 Klik tombol di bawah untuk mengocok 2 dadu!";
+      const btn = document.getElementById("btnRollDice");
+      btn.disabled = false;
+      btn.classList.remove("opacity-60", "cursor-not-allowed");
+
+      setLiveCommentary("🔄 Permainan direset! Tim Biru silakan memulai giliran pertama.");
+    }
+
+    function showVictoryModal(winningTeam) {
+      sfxVictory();
+      const modal = document.getElementById("victoryModal");
+      document.getElementById("victoryTitle").textContent = `🏆 ${winningTeam.name} MENCAPAI KOTAK 100!`;
+
+      const sorted = [...players].sort((a, b) => b.score - a.score || b.pos - a.pos);
+      const lb = document.getElementById("victoryLeaderboard");
+      lb.innerHTML = sorted.map((p, idx) => {
+        const t = TEAMS[p.id];
+        return `
+          <div class="flex items-center justify-between bg-slate-900 px-4 py-2.5 rounded-xl border border-indigo-400/25">
+            <div class="flex items-center gap-2.5">
+              <span class="font-display font-bold text-amber-300 text-sm">#${idx + 1}</span>
+              <span class="font-display font-bold text-sm text-white">${t.name}</span>
+              <span class="text-xs text-slate-400">(Kotak ${p.pos}/100)</span>
+            </div>
+            <span class="font-display font-bold text-base text-emerald-300">${p.score} Poin</span>
+          </div>
+        `;
+      }).join("");
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function startGameFromIntro() {
+      ensureAudioCtx();
+      startAmbientBGM();
+      const startModal = document.getElementById("startScreenModal");
+      startModal.classList.add("hidden");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadSettingsAndQuestions();
+      generateQuestionTiles(gameConfig.questionTileCount);
+      renderBoardGrid();
+      renderSnakesAndLaddersSVG();
+      renderPawnsLayer();
+      updateTurnIndicators();
+      drawDieFace("dieSvg1", 6);
+      drawDieFace("dieSvg2", 6);
+    });
+  </script>
+</body>
+</html>
